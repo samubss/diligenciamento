@@ -1589,13 +1589,12 @@ const OrderForm = ({
       setAiMsg(`Enviando ${maxP} página(s) para IA...`);
       const apiKey = getApiKey();
       if (!apiKey) throw new Error("Chave de API não configurada. Acesse Configurações > Chave API para configurar.");
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch("https://anthropic-proxy.samuelbss.workers.dev/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-allow-browser": "true"
+          "anthropic-version": "2023-06-01"
         },
         body: JSON.stringify({
           model: "claude-sonnet-5-5",
@@ -2027,13 +2026,12 @@ const NFSection = ({
 {"numero":"<número da NF sem zeros à esquerda>","dataEmissao":"<YYYY-MM-DD>","itens":[{"descricao":"<desc>","quantidade":<num>,"valorUnitario":<num>}]}
 Retorne APENAS o JSON, sem explicações.` }
       ];
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch("https://anthropic-proxy.samuelbss.workers.dev/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-allow-browser": "true"
+          "anthropic-version": "2023-06-01"
         },
         body: JSON.stringify({
           model: "claude-haiku-4-5-20251001",
