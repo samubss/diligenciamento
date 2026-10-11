@@ -7295,14 +7295,14 @@ function App() {
       setPage("dashboard");
     }
   }), page === "dashboard" && /*#__PURE__*/React.createElement("div", {
-    style: {maxWidth:"1100px",margin:"0 auto",padding:"24px 24px 40px"}
+    style: {maxWidth:"1100px",margin:"0 auto",padding:"0 0 40px"}
   },
     /*#__PURE__*/React.createElement("div", {style:{marginBottom:"24px"}},
       /*#__PURE__*/React.createElement("h2", {style:{margin:0,fontSize:"22px",fontWeight:"700",color:"var(--color-text-primary)"}}, "Painel"),
       /*#__PURE__*/React.createElement("p", {style:{margin:"4px 0 0",fontSize:"13px",color:"var(--color-text-secondary)"}}, "Visão geral dos pedidos")
     ),
     /*#__PURE__*/React.createElement("div", {
-      style:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:"14px",marginBottom:"28px"}
+      style:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:"12px",marginBottom:"24px"}
     },
       [
         { label:"Todos os Pedidos",    value: ordersWithStatus.length, color:"#3A3F9E", bg:"rgba(58,63,158,.08)", nav:()=>goPage("pedidos") },
