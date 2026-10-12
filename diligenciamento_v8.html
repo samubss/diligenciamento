@@ -4908,8 +4908,10 @@ const RelatorioPage = ({
       key: o.id,
       style: {
         ...G.card,
-        marginBottom: 14,
-        pageBreakInside: "avoid"
+        marginBottom: 20,
+        pageBreakInside: "avoid",
+        borderLeft: "4px solid " + (stStyle.color || "#ccc"),
+        paddingLeft: 16
       }
     }, /*#__PURE__*/React.createElement("div", {
       style: {
