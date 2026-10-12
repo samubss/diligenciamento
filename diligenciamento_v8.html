@@ -5279,26 +5279,42 @@ const parseJmcTexto = (texto) => {
   // depois emparelha por posição no texto.
   //
   // Formatos conhecidos de fatura JMC:
-  //   001XXXXX — ex: 00129101 (prefixo "001")
-  //   000XXXXX — ex: 00098401 (prefixo "000")
-  // Os últimos 2 dígitos são sempre o código do cliente (ex: "01"), remove-os.
+  //   000XXXXX / 001XXXXX — ex: 00098401, 00129101 (8 dígitos, prefixo "00")
+  //   NNNN (curto)        — ex: 1188 (número curto sem zeros, seguido de data YYYY-MM-DD PV)
+  // Para formatos longos: últimos 2 dígitos = código do cliente (ex: "01"), remove-os.
+  // Para formatos curtos: o número já é a NF diretamente.
 
   const faturaToNF = (fatura) => {
+    if (fatura.length <= 6) return fatura; // número curto: já é a NF
     const semZeros = fatura.replace(/^0+/, "");
     // últimos 2 dígitos = código do cliente (ex: "01"), remove-os
     return semZeros.length > 4 ? semZeros.slice(0, -2) : semZeros;
   };
 
   // 1) Coleta todas as ocorrências de fatura com posição no texto
-  // Aceita 8 dígitos começando com "00" (000XXXXX ou 001XXXXX etc.)
+  // Formato longo: 8 dígitos começando com "00"
   const reFatura = /\b(00\d{6})\b/g;
   const faturas = [];
   let mf;
   while ((mf = reFatura.exec(texto)) !== null) {
-    // Exclui números que parecem ser doc/PV (ex: 53067098 — 8 dígitos mas começa com 5)
-    // e anos/datas embutidos
     faturas.push({ fatura: mf[1], pos: mf.index });
   }
+
+  // Formato curto: 3-6 dígitos SEGUIDOS de data "YYYY-MM-DD PV" (identifica linha da tabela)
+  // Ex: "1188 2026-08-04 PV 53097044"
+  const reFaturasCurta = /\b(\d{3,6})\s+(\d{4}-\d{2}-\d{2})\s+PV\b/g;
+  let mc;
+  while ((mc = reFaturasCurta.exec(texto)) !== null) {
+    // Evita capturar números de doc (5 dígitos começando com 5) ou anos
+    const num = mc[1];
+    const jaExiste = faturas.some(f => Math.abs(f.pos - mc.index) < 3);
+    if (!jaExiste && !/^(202[0-9]|530\d{2})/.test(num)) {
+      faturas.push({ fatura: num, pos: mc.index });
+    }
+  }
+
+  // Ordena por posição no texto
+  faturas.sort((a, b) => a.pos - b.pos);
 
   if (faturas.length === 0) return [];
 
@@ -5401,6 +5417,7 @@ const ImportarPdfJmcModal = ({ nfs, onClose, onConfirmar }) => {
   const [dragOver, setDragOver] = useState(false);
   const [extraindo, setExtraindo] = useState(false);
   const [valorTotalPdf, setValorTotalPdf] = useState(null);
+  const [textoPdfReproc, setTextoPdfReproc] = useState("");
 
   const extrairTextoPdf = async (file) => {
     setExtraindo(true);
@@ -5685,17 +5702,17 @@ const ImportarPdfJmcModal = ({ nfs, onClose, onConfirmar }) => {
               background: "#FFF8F8", color: "#4A0000", marginBottom: 8
             },
             placeholder: "Cole aqui o texto copiado do PDF (Ctrl+A depois Ctrl+C no visualizador do PDF)...",
-            value: textoPdf,
-            onChange: e => setTextoPdf(e.target.value)
+            value: textoPdfReproc,
+            onChange: e => setTextoPdfReproc(e.target.value)
           }),
           /*#__PURE__*/React.createElement("button", {
-            onClick: () => { if (textoPdf.trim()) processar(textoPdf); },
-            disabled: !textoPdf.trim(),
+            onClick: () => { if (textoPdfReproc.trim()) processar(textoPdfReproc); },
+            disabled: !textoPdfReproc.trim(),
             style: {
               width: "100%", padding: "9px 0", borderRadius: 8, border: "none",
-              background: textoPdf.trim() ? "#C0392B" : "#ccc",
+              background: textoPdfReproc.trim() ? "#C0392B" : "#ccc",
               color: "#fff", fontWeight: 600, fontSize: 13,
-              cursor: textoPdf.trim() ? "pointer" : "default", fontFamily: "inherit"
+              cursor: textoPdfReproc.trim() ? "pointer" : "default", fontFamily: "inherit"
             }
           }, "🔄 Reprocessar com texto colado")
         ),
