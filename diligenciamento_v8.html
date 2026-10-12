@@ -7507,10 +7507,10 @@ function App() {
         }, finValoresOcultos ? "👁 Mostrar valores" : "🙈 Ocultar valores")
       ),
       /*#__PURE__*/React.createElement("div", {
-        style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"12px"}
+        style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"12px"}
       },
         (()=>{
-          const hoje = new Date();
+          const hoje = new Date(); hoje.setHours(0,0,0,0);
           const fmtBRL = v => finValoresOcultos
             ? /*#__PURE__*/React.createElement("span", {style:{filter:"blur(7px)",userSelect:"none"}}, "R$ 99.999,99")
             : "R$ " + v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -7520,21 +7520,34 @@ function App() {
             const prazo = parseInt((order?.pagamento||"").replace(/\D/g,"")) || 15;
             const d = new Date(nf.entrega_data+"T12:00:00");
             d.setDate(d.getDate()+prazo);
+            d.setHours(0,0,0,0);
             return d;
           };
           const nfsPendentes = nfs.filter(n => n.entrega_confirmada && !n.pagamento_confirmado);
-          const calcPeriodo = dias => {
-            const fim = new Date(hoje); fim.setDate(fim.getDate()+dias);
-            const nfsFiltradas = nfsPendentes.filter(n => { const v=calcVencimento(n); return v&&v>=hoje&&v<=fim; });
-            return { total: nfsFiltradas.reduce((s,n)=>s+(n.valorNF||0),0), count: nfsFiltradas.length };
+          // Janelas exclusivas: cada NF cai em exatamente um bucket
+          // Vencidas: vencimento < hoje
+          // Semanal:  hoje <= vencimento <= hoje+7
+          // Quinzenal: hoje+8 <= vencimento <= hoje+15
+          // Mensal:   hoje+16 <= vencimento <= hoje+30
+          const d7  = new Date(hoje); d7.setDate(d7.getDate()+7);
+          const d15 = new Date(hoje); d15.setDate(d15.getDate()+15);
+          const d30 = new Date(hoje); d30.setDate(d30.getDate()+30);
+          const calcJanela = (de, ate) => {
+            const filtradas = nfsPendentes.filter(n => {
+              const v = calcVencimento(n);
+              if (!v) return false;
+              return (!de || v >= de) && (!ate || v <= ate);
+            });
+            return { total: filtradas.reduce((s,n)=>s+(n.valorNF||0),0), count: filtradas.length };
           };
           const periodos = [
-            { label:"A receber semanal",  badge:"7 dias",  dias:7,  color:"#0EA5E9", badgeBg:"rgba(14,165,233,.15)", filtro:"pendentes" },
-            { label:"A receber quinzenal", badge:"15 dias", dias:15, color:"#8B5CF6", badgeBg:"rgba(139,92,246,.15)", filtro:"pendentes" },
-            { label:"A receber mensal",    badge:"30 dias", dias:30, color:"#10B981", badgeBg:"rgba(16,185,129,.15)", filtro:"pendentes" },
+            { label:"Vencidas",            badge:"Em atraso",  de:null, ate:new Date(hoje.getTime()-1), color:"#EF4444", badgeBg:"rgba(239,68,68,.15)",    filtro:"pendentes", subLabel:"NF vencida" },
+            { label:"A receber semanal",   badge:"0–7 dias",   de:hoje, ate:d7,  color:"#0EA5E9", badgeBg:"rgba(14,165,233,.15)",  filtro:"pendentes", subLabel:"NF a vencer" },
+            { label:"A receber quinzenal", badge:"8–15 dias",  de:new Date(hoje.getTime()+8*86400000), ate:d15, color:"#8B5CF6", badgeBg:"rgba(139,92,246,.15)", filtro:"pendentes", subLabel:"NF a vencer" },
+            { label:"A receber mensal",    badge:"16–30 dias", de:new Date(hoje.getTime()+16*86400000), ate:d30, color:"#10B981", badgeBg:"rgba(16,185,129,.15)", filtro:"pendentes", subLabel:"NF a vencer" },
           ];
           return periodos.map(p => {
-            const info = calcPeriodo(p.dias);
+            const info = calcJanela(p.de, p.ate);
             return /*#__PURE__*/React.createElement("div", {
               key: p.label,
               onClick: ()=>{ setPagFiltroStatus(p.filtro); goPage("pagamentos"); },
@@ -7550,7 +7563,7 @@ function App() {
                 fmtBRL(info.total)
               ),
               /*#__PURE__*/React.createElement("div", {style:{fontSize:"11px",color:"var(--color-text-secondary)"}},
-                info.count, " NF", info.count!==1?"s":"", " a vencer"
+                info.count, " ", p.subLabel, info.count!==1?"s":""
               )
             );
           });
