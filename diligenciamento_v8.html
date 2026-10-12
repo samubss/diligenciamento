@@ -5366,6 +5366,12 @@ const extrairNumeroOP = (texto) => {
   return "";
 };
 
+// Extrai o valor total do pagamento declarado no PDF (ex: "Valor do Pagamento: 11430.48")
+const extrairValorTotalPdf = (texto) => {
+  const m = texto.match(/valor\s+do\s+pagamento[:\s]*([0-9]{1,12}(?:\.[0-9]{1,2})?)/i);
+  return m ? parseFloat(m[1]) : null;
+};
+
 // Extrai a data de pagamento do PDF (ex: "17/09/2026" ou "2026-09-17")
 const extrairDataPagamento = (texto) => {
   // Tenta formato DD/MM/YYYY (ex: 17/09/2026)
@@ -5394,6 +5400,7 @@ const ImportarPdfJmcModal = ({ nfs, onClose, onConfirmar }) => {
   const [textoPdf, setTextoPdf] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [extraindo, setExtraindo] = useState(false);
+  const [valorTotalPdf, setValorTotalPdf] = useState(null);
 
   const extrairTextoPdf = async (file) => {
     setExtraindo(true);
@@ -5429,6 +5436,11 @@ const ImportarPdfJmcModal = ({ nfs, onClose, onConfirmar }) => {
     // Extrai data de pagamento do PDF e preenche o campo automaticamente
     const dataDoPdf = extrairDataPagamento(texto);
     if (dataDoPdf) setDataOp(dataDoPdf);
+    // Extrai o número da OP e o valor total declarado no PDF
+    const opDoPdf = extrairNumeroOP(texto);
+    if (opDoPdf) setNumeroOp(opDoPdf);
+    const vtPdf = extrairValorTotalPdf(texto);
+    setValorTotalPdf(vtPdf);
     const linhas = parseJmcTexto(texto);
     if (linhas.length === 0) {
       setErro("Nenhuma linha de pagamento encontrada. Verifique se o texto copiado contém os números de fatura (ex: 00129101).\n\nSe importou um PDF, tente copiar o texto manualmente (Ctrl+A, Ctrl+C) e colar na área de texto abaixo.");
@@ -5473,6 +5485,10 @@ const ImportarPdfJmcModal = ({ nfs, onClose, onConfirmar }) => {
   const nfsNaoEncontradas = linhasPdf.filter(l => !l.nf);
   const nfsJaPagas = linhasPdf.filter(l => l.nf && l.jaConfirmado);
   const divergencias = linhasPdf.filter(l => l.nf && !l.match && !l.jaConfirmado);
+  // Integridade: soma lida vs valor declarado no PDF
+  const somaLida = Math.round(linhasPdf.reduce((s, l) => s + l.valorTotal, 0) * 100) / 100;
+  const difIntegridade = valorTotalPdf !== null ? Math.abs(somaLida - valorTotalPdf) : 0;
+  const falhaIntegridade = valorTotalPdf !== null && difIntegridade > 0.02;
 
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -5628,6 +5644,40 @@ const ImportarPdfJmcModal = ({ nfs, onClose, onConfirmar }) => {
           ),
           nfsNaoEncontradas.length > 0 && /*#__PURE__*/React.createElement("span", { style: { background: "#FCEBEB", color: "#791F1F", padding: "3px 10px", borderRadius: 99 } },
             nfsNaoEncontradas.length, " não encontrada(s)"
+          ),
+          valorTotalPdf !== null && /*#__PURE__*/React.createElement("span", {
+            style: {
+              background: falhaIntegridade ? "#FCEBEB" : "#EAF3DE",
+              color: falhaIntegridade ? "#791F1F" : "#27500A",
+              padding: "3px 10px", borderRadius: 99, fontWeight: 600
+            }
+          },
+            falhaIntegridade ? "⚠ " : "✓ ",
+            "Total PDF: R$ ", valorTotalPdf.toFixed(2)
+          )
+        ),
+
+        // Alerta de integridade: soma lida ≠ valor do PDF
+        falhaIntegridade && /*#__PURE__*/React.createElement("div", {
+          style: {
+            background: "#FCEBEB", border: "1.5px solid #E57373",
+            borderRadius: 10, padding: "14px 16px", marginBottom: 16
+          }
+        },
+          /*#__PURE__*/React.createElement("div", { style: { fontWeight: 700, color: "#791F1F", fontSize: 14, marginBottom: 8 } },
+            "🚨 Atenção: leitura incompleta do PDF"
+          ),
+          /*#__PURE__*/React.createElement("div", { style: { fontSize: 13, color: "#791F1F", lineHeight: 1.6 } },
+            "O valor total declarado no documento é ",
+            /*#__PURE__*/React.createElement("strong", null, "R$ ", valorTotalPdf.toFixed(2)),
+            ", mas a soma das faturas lidas é apenas ",
+            /*#__PURE__*/React.createElement("strong", null, "R$ ", somaLida.toFixed(2)),
+            ". Faltam ",
+            /*#__PURE__*/React.createElement("strong", null, "R$ ", (valorTotalPdf - somaLida).toFixed(2)),
+            " — algumas linhas não foram reconhecidas."
+          ),
+          /*#__PURE__*/React.createElement("div", { style: { fontSize: 12, color: "#A32D2D", marginTop: 8 } },
+            "💡 Tente copiar o texto do PDF manualmente (Ctrl+A, Ctrl+C no Adobe/Chrome) e cole na área de texto abaixo do campo de arrastar. Ou verifique se o PDF tem mais páginas."
           )
         ),
 
@@ -5665,13 +5715,15 @@ const ImportarPdfJmcModal = ({ nfs, onClose, onConfirmar }) => {
 
         nfsPendentes.length > 0 && /*#__PURE__*/React.createElement("div", { style: { display: "flex", gap: 10 } },
           /*#__PURE__*/React.createElement("button", {
-            onClick: confirmar,
+            onClick: falhaIntegridade
+              ? () => { if (window.confirm("O valor lido não bate com o total do PDF. Existem faturas não reconhecidas.\n\nDeseja confirmar mesmo assim apenas as " + nfsPendentes.length + " NF(s) encontradas?")) confirmar(); }
+              : confirmar,
             style: {
               flex: 1, padding: "10px 0", borderRadius: 8, border: "none",
-              background: "#185FA5", color: "#fff", fontWeight: 600,
+              background: falhaIntegridade ? "#C0392B" : "#185FA5", color: "#fff", fontWeight: 600,
               fontSize: 14, cursor: "pointer", fontFamily: "inherit"
             }
-          }, "✅ Confirmar ", nfsPendentes.length, " pagamento(s)"),
+          }, falhaIntegridade ? "⚠ Confirmar mesmo assim (" + nfsPendentes.length + " NFs)" : "✅ Confirmar " + nfsPendentes.length + " pagamento(s)"),
           /*#__PURE__*/React.createElement("button", {
             onClick: onClose,
             style: {
