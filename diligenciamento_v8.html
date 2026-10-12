@@ -7295,92 +7295,108 @@ function App() {
       setPage("dashboard");
     }
   }), page === "dashboard" && /*#__PURE__*/React.createElement("div", {
-    style: {maxWidth:"1100px",margin:"0 auto",padding:"0 0 40px"}
+    style: {maxWidth:"1200px",margin:"0 auto",padding:"0 0 40px"}
   },
-    /*#__PURE__*/React.createElement("div", {style:{marginBottom:"24px"}},
-      /*#__PURE__*/React.createElement("h2", {style:{margin:0,fontSize:"22px",fontWeight:"700",color:"var(--color-text-primary)"}}, "Painel"),
-      /*#__PURE__*/React.createElement("p", {style:{margin:"4px 0 0",fontSize:"13px",color:"var(--color-text-secondary)"}}, "Visão geral dos pedidos")
-    ),
-    /*#__PURE__*/React.createElement("div", {
-      style:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:"12px",marginBottom:"24px"}
-    },
-      [
-        { label:"Todos os Pedidos",    value: ordersWithStatus.length, color:"#3A3F9E", bg:"rgba(58,63,158,.08)", nav:()=>goPage("pedidos") },
-        { label:"Recentes (7 dias)",   value: ordersWithStatus.filter(o=>{ const d=new Date(o.data); const now=new Date(); return (now-d)/(1000*60*60*24)<=7; }).length, color:"#0EA5E9", bg:"rgba(14,165,233,.08)", nav:()=>goPage("pedidos") },
-        { label:"Em andamento",        value: ordersWithStatus.filter(o=>o.status==="Em andamento").length, color:"#F59E0B", bg:"rgba(245,158,11,.08)", nav:()=>goPage("pedidos") },
-        { label:"Atrasados",           value: ordersWithStatus.filter(o=>o.status==="Atrasado").length, color:"#EF4444", bg:"rgba(239,68,68,.08)", nav:()=>goPage("pedidos") },
-        { label:"Disp. p/ entrega",    value: ordersWithStatus.filter(o=>o.status==="Disponível p/ entrega").length, color:"#10B981", bg:"rgba(16,185,129,.08)", nav:()=>goPage("pedidos") },
-      ].map(c => /*#__PURE__*/React.createElement("div", {
-        key: c.label,
-        onClick: c.nav,
-        style: {background:"var(--color-surface)",border:"1px solid var(--color-border)",borderRadius:"12px",padding:"18px 16px",cursor:"pointer",transition:"box-shadow .15s,transform .1s",boxShadow:"0 1px 3px rgba(0,0,0,.06)"},
-        onMouseEnter: e=>{e.currentTarget.style.boxShadow="0 4px 12px rgba(0,0,0,.12)";e.currentTarget.style.transform="translateY(-1px)";},
-        onMouseLeave: e=>{e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,.06)";e.currentTarget.style.transform="none";}
-      },
-        /*#__PURE__*/React.createElement("div", {style:{width:"36px",height:"36px",borderRadius:"8px",background:c.bg,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:"12px"}},
-          /*#__PURE__*/React.createElement("div", {style:{width:"14px",height:"14px",borderRadius:"3px",background:c.color,opacity:.8}})
-        ),
-        /*#__PURE__*/React.createElement("div", {style:{fontSize:"28px",fontWeight:"800",color:c.color,lineHeight:"1",fontVariantNumeric:"tabular-nums"}}, c.value),
-        /*#__PURE__*/React.createElement("div", {style:{fontSize:"12px",color:"var(--color-text-secondary)",marginTop:"4px",fontWeight:"500"}}, c.label)
-      ))
-    ),
-    /*#__PURE__*/React.createElement("div", {
-      style:{background:"var(--color-surface)",border:"1px solid var(--color-border)",borderRadius:"14px",padding:"20px 22px",marginBottom:"28px"}
-    },
-      /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px"}},
-        /*#__PURE__*/React.createElement("h3", {style:{margin:0,fontSize:"15px",fontWeight:"700",color:"var(--color-text-primary)"}}, "Financeiro — A Receber"),
-        /*#__PURE__*/React.createElement("button", {
-          onClick: ()=>setFinValoresOcultos(v=>!v),
-          style:{display:"flex",alignItems:"center",gap:"6px",background:"none",border:"1px solid var(--color-border)",borderRadius:"6px",padding:"5px 10px",cursor:"pointer",fontSize:"12px",color:"var(--color-text-secondary)"}
-        },
-          finValoresOcultos
-            ? /*#__PURE__*/React.createElement("svg", {width:"14",height:"14",viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"2"},
-                /*#__PURE__*/React.createElement("path", {d:"M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"}),
-                /*#__PURE__*/React.createElement("line", {x1:"1",y1:"1",x2:"23",y2:"23"})
-              )
-            : /*#__PURE__*/React.createElement("svg", {width:"14",height:"14",viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"2"},
-                /*#__PURE__*/React.createElement("path", {d:"M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"}),
-                /*#__PURE__*/React.createElement("circle", {cx:"12",cy:"12",r:"3"})
-              ),
-          finValoresOcultos ? "Mostrar valores" : "Ocultar valores"
+    /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"20px"}},
+      /*#__PURE__*/React.createElement("div", null,
+        /*#__PURE__*/React.createElement("h2", {style:{margin:0,fontSize:"20px",fontWeight:"700",color:"var(--color-text-primary)"}}, "Dashboard"),
+        /*#__PURE__*/React.createElement("p", {style:{margin:"2px 0 0",fontSize:"12px",color:"var(--color-text-secondary)"}},
+          new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long",year:"numeric"})
         )
       ),
+      /*#__PURE__*/React.createElement("button", {
+        onClick: ()=>goPage("novo"),
+        style:{display:"flex",alignItems:"center",gap:"6px",background:"#185FA5",color:"#fff",border:"none",borderRadius:"8px",padding:"9px 16px",cursor:"pointer",fontSize:"13px",fontWeight:"600"}
+      }, "+ Novo pedido")
+    ),
+    /*#__PURE__*/React.createElement("div", {
+      style:{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:"12px",marginBottom:"20px"}
+    },
+      (()=>{
+        const hoje = new Date();
+        const recentes = ordersWithStatus.filter(o=>{ const d=new Date(o.data+"T12:00:00"); return !isNaN(d)&&(hoje-d)/(86400000)<=7; }).length;
+        const cards = [
+          { label:"TODOS OS PEDIDOS", value:ordersWithStatus.length,           color:"#3A3F9E", icon:"📋", sub:"Total cadastrado",            nav:()=>goPage("pedidos") },
+          { label:"RECENTES",          value:recentes,                           color:"#0EA5E9", icon:"🕐", sub:"Criados nos últimos 7 dias",   nav:()=>goPage("pedidos") },
+          { label:"EM ANDAMENTO",      value:ordersWithStatus.filter(o=>o.status==="Em andamento").length, color:"#F59E0B", icon:"⚙", sub:"Aguardando fornecimento", nav:()=>goPage("pedidos") },
+          { label:"ATRASADOS",         value:ordersWithStatus.filter(o=>o.status==="Atrasado").length,     color:"#EF4444", icon:"⚠", sub:"Prazo vencido",           nav:()=>goPage("pedidos") },
+          { label:"DISP. P/ ENTREGA",  value:ordersWithStatus.filter(o=>o.status==="Disponível p/ entrega").length, color:"#10B981", icon:"✅", sub:"Prontos para retirada",  nav:()=>goPage("pedidos") },
+        ];
+        return cards.map(c => /*#__PURE__*/React.createElement("div", {
+          key: c.label,
+          onClick: c.nav,
+          style:{background:"var(--color-surface)",border:"1px solid var(--color-border)",borderRadius:"12px",padding:"16px",cursor:"pointer",transition:"box-shadow .15s,transform .1s",boxShadow:"0 1px 3px rgba(0,0,0,.05)"},
+          onMouseEnter: e=>{e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,.1)";e.currentTarget.style.transform="translateY(-2px)";},
+          onMouseLeave: e=>{e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,.05)";e.currentTarget.style.transform="";}
+        },
+          /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"10px"}},
+            /*#__PURE__*/React.createElement("div", {style:{width:"36px",height:"36px",borderRadius:"50%",background:c.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"16px"}}, c.icon),
+            /*#__PURE__*/React.createElement("span", {style:{fontSize:"9px",fontWeight:"700",color:c.color,letterSpacing:"0.8px",textTransform:"uppercase"}}, c.label)
+          ),
+          /*#__PURE__*/React.createElement("div", {style:{fontSize:"32px",fontWeight:"800",color:c.color,lineHeight:"1",fontVariantNumeric:"tabular-nums"}}, c.value),
+          /*#__PURE__*/React.createElement("div", {style:{fontSize:"11px",color:"var(--color-text-secondary)",marginTop:"6px"}}, c.sub),
+          /*#__PURE__*/React.createElement("div", {style:{fontSize:"11px",color:c.color,marginTop:"4px",fontWeight:"600"}}, "→ VER TODOS →")
+        ));
+      })()
+    ),
+    /*#__PURE__*/React.createElement("div", {
+      style:{background:"var(--color-surface)",border:"1px solid var(--color-border)",borderRadius:"12px",padding:"18px 20px",marginBottom:"16px"}
+    },
+      /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"14px"}},
+        /*#__PURE__*/React.createElement("h3", {style:{margin:0,fontSize:"14px",fontWeight:"700",color:"var(--color-text-primary)",textTransform:"uppercase",letterSpacing:"0.5px"}}, "Financeiro — A Receber"),
+        /*#__PURE__*/React.createElement("button", {
+          onClick: ()=>setFinValoresOcultos(v=>!v),
+          style:{display:"flex",alignItems:"center",gap:"5px",background:"none",border:"1px solid var(--color-border)",borderRadius:"6px",padding:"4px 10px",cursor:"pointer",fontSize:"11px",color:"var(--color-text-secondary)"}
+        }, finValoresOcultos ? "👁 Mostrar valores" : "🙈 Ocultar valores")
+      ),
       /*#__PURE__*/React.createElement("div", {
-        style:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:"14px"}
+        style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"12px"}
       },
         (()=>{
           const hoje = new Date();
-          const fmtBRL = v => finValoresOcultos ? "R$ ••••••" : "R$ " + v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
-          const nfsPendentes = nfs.filter(n => n.status !== "Pago" && n.status !== "Cancelado");
+          const fmtBRL = v => finValoresOcultos
+            ? /*#__PURE__*/React.createElement("span", {style:{filter:"blur(7px)",userSelect:"none"}}, "R$ 99.999,99")
+            : "R$ " + v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+          // NFs com entrega confirmada e não pagas — usa mesma lógica de dataPrevistaPgto da página Pagamentos
+          const calcVencimento = nf => {
+            const dataEntrega = nf.entrega_data;
+            if (!dataEntrega) return null;
+            const order = ordersWithStatus.find(o => o.id === nf.pedidoId);
+            const prazo = parseInt((order?.pagamento||"").replace(/\D/g,"")) || 15;
+            const d = new Date(dataEntrega+"T12:00:00");
+            d.setDate(d.getDate()+prazo);
+            return d;
+          };
+          const nfsPendentes = nfs.filter(n => n.entrega_confirmada && !n.pagamento_confirmado);
           const calcPeriodo = dias => {
             const fim = new Date(hoje); fim.setDate(fim.getDate()+dias);
-            const nfsFiltradas = nfsPendentes.filter(n => { if(!n.dataVencimento) return false; const d=new Date(n.dataVencimento); return d>=hoje && d<=fim; });
+            const nfsFiltradas = nfsPendentes.filter(n => {
+              const venc = calcVencimento(n);
+              return venc && venc >= hoje && venc <= fim;
+            });
             const total = nfsFiltradas.reduce((s,n)=>s+(n.valorNF||0),0);
-            const aguardando = nfsFiltradas.filter(n=>n.status==="Aguardando pagamento"||!n.status).length;
-            const pagas = nfsFiltradas.filter(n=>n.status==="Pago").length;
-            return { total, aguardando, pagas, count: nfsFiltradas.length };
+            return { total, count: nfsFiltradas.length };
           };
           const periodos = [
-            { label:"Semanal",   dias:7,  color:"#0EA5E9", bg:"rgba(14,165,233,.1)"  },
-            { label:"Quinzenal", dias:15, color:"#8B5CF6", bg:"rgba(139,92,246,.1)" },
-            { label:"Mensal",    dias:30, color:"#10B981", bg:"rgba(16,185,129,.1)" },
+            { label:"A receber semanal",   badge:"7 dias",   dias:7,  color:"#0EA5E9", badgeBg:"rgba(14,165,233,.15)"  },
+            { label:"A receber quinzenal",  badge:"15 dias",  dias:15, color:"#8B5CF6", badgeBg:"rgba(139,92,246,.15)" },
+            { label:"A receber mensal",     badge:"30 dias",  dias:30, color:"#10B981", badgeBg:"rgba(16,185,129,.15)" },
           ];
           return periodos.map(p => {
             const info = calcPeriodo(p.dias);
             return /*#__PURE__*/React.createElement("div", {
               key: p.label,
-              style:{background:p.bg,borderRadius:"10px",padding:"16px"}
+              style:{borderRadius:"10px",padding:"16px 18px",border:"1px solid var(--color-border)",background:"var(--color-surface)"}
             },
-              /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"10px"}},
-                /*#__PURE__*/React.createElement("span", {style:{fontSize:"12px",fontWeight:"600",color:p.color,textTransform:"uppercase",letterSpacing:"0.5px"}}, p.label),
-                /*#__PURE__*/React.createElement("span", {style:{fontSize:"11px",color:"var(--color-text-secondary)"}}, p.dias, "d")
+              /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"8px"}},
+                /*#__PURE__*/React.createElement("span", {style:{fontSize:"12px",fontWeight:"600",color:"var(--color-text-primary)"}}, p.label),
+                /*#__PURE__*/React.createElement("span", {style:{fontSize:"10px",fontWeight:"700",color:p.color,background:p.badgeBg,padding:"2px 8px",borderRadius:"999px"}}, p.badge)
               ),
               /*#__PURE__*/React.createElement("div", {
-                style:{fontSize:"22px",fontWeight:"800",color:"var(--color-text-primary)",fontVariantNumeric:"tabular-nums",marginBottom:"8px",filter:finValoresOcultos?"blur(6px)":"none",transition:"filter .2s"}
+                style:{fontSize:"24px",fontWeight:"800",color:p.color,fontVariantNumeric:"tabular-nums",transition:"filter .2s",marginBottom:"6px"}
               }, fmtBRL(info.total)),
-              /*#__PURE__*/React.createElement("div", {style:{fontSize:"11px",color:"var(--color-text-secondary)",display:"flex",flexDirection:"column",gap:"2px"}},
-                /*#__PURE__*/React.createElement("span", null, info.count, " NF", info.count!==1?"s":"", " no período"),
-                /*#__PURE__*/React.createElement("span", null, "Aguardando: ", /*#__PURE__*/React.createElement("b", {style:{color:"var(--color-text-primary)"}}, info.aguardando))
+              /*#__PURE__*/React.createElement("div", {style:{fontSize:"11px",color:"var(--color-text-secondary)"}},
+                info.count, " NF", info.count!==1?"s":"", " a vencer"
               )
             );
           });
@@ -7388,14 +7404,17 @@ function App() {
       )
     ),
     /*#__PURE__*/React.createElement("div", {
-      style:{background:"var(--color-surface)",border:"1px solid var(--color-border)",borderRadius:"14px",padding:"20px 22px"}
+      style:{background:"var(--color-surface)",border:"1px solid var(--color-border)",borderRadius:"12px",overflow:"hidden"}
     },
-      /*#__PURE__*/React.createElement("h3", {style:{margin:"0 0 14px",fontSize:"15px",fontWeight:"700",color:"var(--color-text-primary)"}}, "Últimos Pedidos"),
+      /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",borderBottom:"1px solid var(--color-border)"}},
+        /*#__PURE__*/React.createElement("h3", {style:{margin:0,fontSize:"13px",fontWeight:"700",color:"var(--color-text-primary)",textTransform:"uppercase",letterSpacing:"0.5px"}}, "Últimos Pedidos"),
+        /*#__PURE__*/React.createElement("button", {onClick:()=>goPage("pedidos"),style:{background:"none",border:"none",color:"#185FA5",fontSize:"12px",fontWeight:"600",cursor:"pointer"}}, "Ver todos →")
+      ),
       /*#__PURE__*/React.createElement("table", {style:{width:"100%",borderCollapse:"collapse",fontSize:"13px"}},
         /*#__PURE__*/React.createElement("thead", null,
-          /*#__PURE__*/React.createElement("tr", {style:{borderBottom:"1px solid var(--color-border)"}},
-            ["Cliente","Fornecedor","Data","Status"].map(h =>
-              /*#__PURE__*/React.createElement("th", {key:h,style:{textAlign:"left",padding:"6px 8px",fontWeight:"600",color:"var(--color-text-secondary)",fontSize:"11px",textTransform:"uppercase",letterSpacing:"0.4px"}}, h)
+          /*#__PURE__*/React.createElement("tr", {style:{background:"var(--color-background-secondary)"}},
+            ["Cliente","Fornecedor","Nº Pedido","Data","Status"].map(h =>
+              /*#__PURE__*/React.createElement("th", {key:h,style:{textAlign:"left",padding:"8px 14px",fontWeight:"600",color:"var(--color-text-secondary)",fontSize:"11px",textTransform:"uppercase",letterSpacing:"0.4px"}}, h)
             )
           )
         ),
@@ -7406,19 +7425,20 @@ function App() {
               key: o.id,
               style:{borderBottom:"1px solid var(--color-border)",cursor:"pointer"},
               onClick: ()=>{setSelectedOrderId(o.id);goPage("pedidos");},
-              onMouseEnter: e=>e.currentTarget.style.background="var(--color-hover)",
+              onMouseEnter: e=>e.currentTarget.style.background="var(--color-background-secondary)",
               onMouseLeave: e=>e.currentTarget.style.background=""
             },
-              /*#__PURE__*/React.createElement("td", {style:{padding:"9px 8px",fontWeight:"500",color:"var(--color-text-primary)"}}, o.cliente||"—"),
-              /*#__PURE__*/React.createElement("td", {style:{padding:"9px 8px",color:"var(--color-text-secondary)"}}, o.fornecedor||"—"),
-              /*#__PURE__*/React.createElement("td", {style:{padding:"9px 8px",color:"var(--color-text-secondary)"}}, o.data ? new Date(o.data+"T12:00:00").toLocaleDateString("pt-BR") : "—"),
-              /*#__PURE__*/React.createElement("td", {style:{padding:"9px 8px"}},
-                /*#__PURE__*/React.createElement("span", {style:{background:st.bg,color:st.color,padding:"2px 8px",borderRadius:"999px",fontSize:"11px",fontWeight:"600"}}, o.status)
+              /*#__PURE__*/React.createElement("td", {style:{padding:"10px 14px",fontWeight:"500",color:"var(--color-text-primary)"}}, o.cliente||"—"),
+              /*#__PURE__*/React.createElement("td", {style:{padding:"10px 14px",color:"var(--color-text-secondary)"}}, o.fornecedor||"—"),
+              /*#__PURE__*/React.createElement("td", {style:{padding:"10px 14px",color:"var(--color-text-secondary)",fontFamily:"monospace",fontSize:"12px"}}, o.numero||"—"),
+              /*#__PURE__*/React.createElement("td", {style:{padding:"10px 14px",color:"var(--color-text-secondary)"}}, o.data ? new Date(o.data+"T12:00:00").toLocaleDateString("pt-BR") : "—"),
+              /*#__PURE__*/React.createElement("td", {style:{padding:"10px 14px"}},
+                /*#__PURE__*/React.createElement("span", {style:{background:st.bg,color:st.color,padding:"3px 10px",borderRadius:"999px",fontSize:"11px",fontWeight:"600",whiteSpace:"nowrap"}}, o.status)
               )
             );
           }),
           ordersWithStatus.length===0 && /*#__PURE__*/React.createElement("tr", null,
-            /*#__PURE__*/React.createElement("td", {colSpan:4,style:{padding:"24px",textAlign:"center",color:"var(--color-text-secondary)"}}, "Nenhum pedido cadastrado")
+            /*#__PURE__*/React.createElement("td", {colSpan:5,style:{padding:"32px",textAlign:"center",color:"var(--color-text-secondary)"}}, "Nenhum pedido cadastrado")
           )
         )
       )
