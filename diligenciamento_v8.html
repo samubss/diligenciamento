@@ -5664,21 +5664,40 @@ const ImportarPdfJmcModal = ({ nfs, onClose, onConfirmar }) => {
             borderRadius: 10, padding: "14px 16px", marginBottom: 16
           }
         },
-          /*#__PURE__*/React.createElement("div", { style: { fontWeight: 700, color: "#791F1F", fontSize: 14, marginBottom: 8 } },
-            "🚨 Atenção: leitura incompleta do PDF"
+          /*#__PURE__*/React.createElement("div", { style: { fontWeight: 700, color: "#791F1F", fontSize: 14, marginBottom: 6 } },
+            "🚨 Leitura incompleta — faltam R$ ", (valorTotalPdf - somaLida).toFixed(2)
           ),
-          /*#__PURE__*/React.createElement("div", { style: { fontSize: 13, color: "#791F1F", lineHeight: 1.6 } },
-            "O valor total declarado no documento é ",
+          /*#__PURE__*/React.createElement("div", { style: { fontSize: 13, color: "#791F1F", lineHeight: 1.6, marginBottom: 12 } },
+            "O documento declara ",
             /*#__PURE__*/React.createElement("strong", null, "R$ ", valorTotalPdf.toFixed(2)),
-            ", mas a soma das faturas lidas é apenas ",
+            " mas só foram reconhecidas faturas somando ",
             /*#__PURE__*/React.createElement("strong", null, "R$ ", somaLida.toFixed(2)),
-            ". Faltam ",
-            /*#__PURE__*/React.createElement("strong", null, "R$ ", (valorTotalPdf - somaLida).toFixed(2)),
-            " — algumas linhas não foram reconhecidas."
+            ". Algumas linhas não foram lidas."
           ),
-          /*#__PURE__*/React.createElement("div", { style: { fontSize: 12, color: "#A32D2D", marginTop: 8 } },
-            "💡 Tente copiar o texto do PDF manualmente (Ctrl+A, Ctrl+C no Adobe/Chrome) e cole na área de texto abaixo do campo de arrastar. Ou verifique se o PDF tem mais páginas."
-          )
+          /*#__PURE__*/React.createElement("div", { style: { fontSize: 12, color: "#791F1F", fontWeight: 600, marginBottom: 6 } },
+            "👇 Cole o texto do PDF abaixo (Ctrl+A, Ctrl+C no Adobe/Chrome) para tentar novamente:"
+          ),
+          /*#__PURE__*/React.createElement("textarea", {
+            style: {
+              width: "100%", height: 100, padding: 10, borderRadius: 8, fontSize: 12,
+              border: "1.5px solid #E57373", fontFamily: "monospace",
+              resize: "vertical", boxSizing: "border-box",
+              background: "#FFF8F8", color: "#4A0000", marginBottom: 8
+            },
+            placeholder: "Cole aqui o texto copiado do PDF (Ctrl+A depois Ctrl+C no visualizador do PDF)...",
+            value: textoPdf,
+            onChange: e => setTextoPdf(e.target.value)
+          }),
+          /*#__PURE__*/React.createElement("button", {
+            onClick: () => { if (textoPdf.trim()) processar(textoPdf); },
+            disabled: !textoPdf.trim(),
+            style: {
+              width: "100%", padding: "9px 0", borderRadius: 8, border: "none",
+              background: textoPdf.trim() ? "#C0392B" : "#ccc",
+              color: "#fff", fontWeight: 600, fontSize: 13,
+              cursor: textoPdf.trim() ? "pointer" : "default", fontFamily: "inherit"
+            }
+          }, "🔄 Reprocessar com texto colado")
         ),
 
         // Tabela de NFs
