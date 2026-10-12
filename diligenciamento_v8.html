@@ -5666,9 +5666,15 @@ const ImportarPdfJmcModal = ({ nfs, onClose, onConfirmar }) => {
 const PagamentosPage = ({
   ordersWithStatus,
   nfs,
-  onImportarPagamentosJmc
+  onImportarPagamentosJmc,
+  filtroStatusExt,
+  setFiltroStatusExt
 }) => {
-  const [filtroStatus, setFiltroStatus] = useState("pendentes"); // pendentes | vencidos | pagos | todos
+  const [filtroStatus, setFiltroStatusLocal] = useState(filtroStatusExt || "pendentes"); // pendentes | vencidos | pagos | todos
+  const setFiltroStatus = v => {
+    setFiltroStatusLocal(v);
+    setFiltroStatusExt && setFiltroStatusExt(v);
+  };
   const [filtroCliente, setFiltroCliente] = useState("");
   const [filtroNumeroPedido, setFiltroNumeroPedido] = useState("");
   const [filtroNF, setFiltroNF] = useState("");
@@ -6037,6 +6043,9 @@ function App() {
   const [duplicataInfo, setDuplicataInfo] = useState(null);
   const [recebedor, setRecebedor] = useState("");
   const [dataEntregaConfirm, setDataEntregaConfirm] = useState("");
+  // Filtros rápidos vindos do Dashboard
+  const [dashFiltroStatus, setDashFiltroStatus] = useState(null); // null = sem filtro | string = filtrar por status
+  const [pagFiltroStatus, setPagFiltroStatus] = useState("pendentes"); // filtro da aba Pagamentos
 
   // Corrige IDs duplicados automaticamente ao carregar os dados
   const corrigirIdsDuplicados = orders => {
@@ -6606,7 +6615,11 @@ function App() {
     status: calcStatus(o, nfs)
   })), [orders, nfs]);
   const selectedOrder = ordersWithStatus.find(o => o.id === selectedOrderId);
-  const filteredBase = useMemo(() => ordersWithStatus.filter(o => !debouncedSearch || [o.cliente, o.fornecedor, o.id, o.numeroPedido || ""].some(f => f.toLowerCase().includes(debouncedSearch.toLowerCase())) || (o.items || []).some(it => (it.descricao || "").toLowerCase().includes(debouncedSearch.toLowerCase()) || (it.cod || "").toLowerCase().includes(debouncedSearch.toLowerCase())) || nfs.filter(n => n.pedidoId === o.id).some(n => String(n.numero).toLowerCase().includes(debouncedSearch.toLowerCase()))), [ordersWithStatus, debouncedSearch, nfs]);
+  const filteredBase = useMemo(() => ordersWithStatus.filter(o => {
+    if (dashFiltroStatus && o.status !== dashFiltroStatus) return false;
+    if (!debouncedSearch) return true;
+    return [o.cliente, o.fornecedor, o.id, o.numeroPedido || ""].some(f => f.toLowerCase().includes(debouncedSearch.toLowerCase())) || (o.items || []).some(it => (it.descricao || "").toLowerCase().includes(debouncedSearch.toLowerCase()) || (it.cod || "").toLowerCase().includes(debouncedSearch.toLowerCase())) || nfs.filter(n => n.pedidoId === o.id).some(n => String(n.numero).toLowerCase().includes(debouncedSearch.toLowerCase()));
+  }), [ordersWithStatus, debouncedSearch, nfs, dashFiltroStatus]);
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch]);
@@ -6632,11 +6645,13 @@ function App() {
     const faturado = nfs.filter(n => n.pedidoId === o.id).reduce((s, n) => s + (n.valorNF || 0), 0);
     return sum + Math.max(0, (o.total || 0) - faturado);
   }, 0), [ordersWithStatus, nfs]);
-  const goPage = p => {
+  const goPage = (p, opts) => {
     setPage(p);
     setSearch("");
     setShowSearch(false);
     if (p === "novo") setEditingOrder(null);
+    // Se não vier do dashboard (sem opts.keepFilter), limpa filtro ao ir para pedidos
+    if (p === "pedidos" && !(opts && opts.keepFilter)) setDashFiltroStatus(null);
   };
   const navItems = [{
     id: "dashboard",
@@ -7337,12 +7352,16 @@ function App() {
             return (it.qtd_disponivel||0)>=(it.qtd||0)&&entregue<(it.qtd||0);
           });
         }).length;
+        const irParaPedidos = status => {
+          setDashFiltroStatus(status);
+          goPage("pedidos", {keepFilter: true});
+        };
         const cards = [
-          { label:"TODOS OS PEDIDOS", value:ordersWithStatus.length,           color:"#3A3F9E", icon:"📋", sub:"Total cadastrado",            nav:()=>goPage("pedidos") },
-          { label:"RECENTES",          value:recentes,                           color:"#0EA5E9", icon:"🕐", sub:"Criados nos últimos 7 dias",   nav:()=>goPage("pedidos") },
-          { label:"EM ANDAMENTO",      value:ordersWithStatus.filter(o=>o.status==="Em andamento").length, color:"#F59E0B", icon:"⚙", sub:"Aguardando fornecimento", nav:()=>goPage("pedidos") },
-          { label:"ATRASADOS",         value:ordersWithStatus.filter(o=>o.status==="Atrasado").length,     color:"#EF4444", icon:"⚠", sub:"Prazo vencido",           nav:()=>goPage("pedidos") },
-          { label:"DISP. P/ ENTREGA",  value:itensDisp, sub2: pedidosComItemDisp+" pedido"+(pedidosComItemDisp!==1?"s":""), color:"#10B981", icon:"✅", sub:"Itens prontos",  nav:()=>goPage("pedidos") },
+          { label:"TODOS OS PEDIDOS", value:ordersWithStatus.length,           color:"#3A3F9E", icon:"📋", sub:"Total cadastrado",            nav:()=>irParaPedidos(null) },
+          { label:"RECENTES",          value:recentes,                           color:"#0EA5E9", icon:"🕐", sub:"Criados nos últimos 7 dias",   nav:()=>irParaPedidos(null) },
+          { label:"EM ANDAMENTO",      value:ordersWithStatus.filter(o=>o.status==="Em andamento").length, color:"#F59E0B", icon:"⚙", sub:"Aguardando fornecimento", nav:()=>irParaPedidos("Em andamento") },
+          { label:"ATRASADOS",         value:ordersWithStatus.filter(o=>o.status==="Atrasado").length,     color:"#EF4444", icon:"⚠", sub:"Prazo vencido",           nav:()=>irParaPedidos("Atrasado") },
+          { label:"DISP. P/ ENTREGA",  value:itensDisp, sub2: pedidosComItemDisp+" pedido"+(pedidosComItemDisp!==1?"s":""), color:"#10B981", icon:"✅", sub:"Itens prontos",  nav:()=>irParaPedidos("Disponível p/ entrega") },
         ];
         return cards.map(c => /*#__PURE__*/React.createElement("div", {
           key: c.label,
@@ -7395,14 +7414,15 @@ function App() {
             return { total: nfsFiltradas.reduce((s,n)=>s+(n.valorNF||0),0), count: nfsFiltradas.length };
           };
           const periodos = [
-            { label:"A receber semanal",  badge:"7 dias",  dias:7,  color:"#0EA5E9", badgeBg:"rgba(14,165,233,.15)" },
-            { label:"A receber quinzenal", badge:"15 dias", dias:15, color:"#8B5CF6", badgeBg:"rgba(139,92,246,.15)" },
-            { label:"A receber mensal",    badge:"30 dias", dias:30, color:"#10B981", badgeBg:"rgba(16,185,129,.15)" },
+            { label:"A receber semanal",  badge:"7 dias",  dias:7,  color:"#0EA5E9", badgeBg:"rgba(14,165,233,.15)", filtro:"pendentes" },
+            { label:"A receber quinzenal", badge:"15 dias", dias:15, color:"#8B5CF6", badgeBg:"rgba(139,92,246,.15)", filtro:"pendentes" },
+            { label:"A receber mensal",    badge:"30 dias", dias:30, color:"#10B981", badgeBg:"rgba(16,185,129,.15)", filtro:"pendentes" },
           ];
           return periodos.map(p => {
             const info = calcPeriodo(p.dias);
             return /*#__PURE__*/React.createElement("div", {
               key: p.label,
+              onClick: ()=>{ setPagFiltroStatus(p.filtro); goPage("pagamentos"); },
               style:{borderRadius:"10px",padding:"16px 18px",border:"1px solid var(--color-border)",background:"var(--color-surface)",cursor:"pointer",transition:"box-shadow .15s,transform .15s,border-color .15s"},
               onMouseEnter: e=>{e.currentTarget.style.boxShadow="0 6px 20px rgba(0,0,0,.12)";e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.borderColor=p.color;},
               onMouseLeave: e=>{e.currentTarget.style.boxShadow="";e.currentTarget.style.transform="";e.currentTarget.style.borderColor="var(--color-border)";}
@@ -7522,13 +7542,26 @@ function App() {
       borderBottom: "0.5px solid var(--color-border-tertiary)",
       display: "flex",
       justifyContent: "space-between",
-      alignItems: "center"
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: "8px"
     }
-  }, /*#__PURE__*/React.createElement("p", {
-    style: {
-      fontWeight: 500
-    }
-  }, "Todos os pedidos (", filtered.length, ")"), /*#__PURE__*/React.createElement("input", {
+  }, /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",gap:"10px",flexWrap:"wrap"}},
+    /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontWeight: 500
+      }
+    }, dashFiltroStatus ? filtered.length+" pedido(s)" : "Todos os pedidos ("+filtered.length+")"),
+    dashFiltroStatus && /*#__PURE__*/React.createElement("span", {
+      style:{display:"flex",alignItems:"center",gap:"6px",background:(STATUS_MAP[dashFiltroStatus]||{bg:"#eee"}).bg,color:(STATUS_MAP[dashFiltroStatus]||{color:"#333"}).color,padding:"3px 10px",borderRadius:"999px",fontSize:"12px",fontWeight:600}
+    },
+      dashFiltroStatus,
+      /*#__PURE__*/React.createElement("span", {
+        onClick: ()=>setDashFiltroStatus(null),
+        style:{cursor:"pointer",fontWeight:700,fontSize:"14px",lineHeight:1,marginLeft:"2px"}
+      }, "×")
+    )
+  ), /*#__PURE__*/React.createElement("input", {
     style: {
       ...G.input,
       width: 220
@@ -7882,7 +7915,9 @@ function App() {
   })()), page === "pagamentos" && /*#__PURE__*/React.createElement(PagamentosPage, {
     ordersWithStatus: ordersWithStatus,
     nfs: nfs,
-    onImportarPagamentosJmc: handleImportarPagamentosJmc
+    onImportarPagamentosJmc: handleImportarPagamentosJmc,
+    filtroStatusExt: pagFiltroStatus,
+    setFiltroStatusExt: setPagFiltroStatus
   }), page === "relatorios" && /*#__PURE__*/React.createElement(RelatorioPage, {
     ordersWithStatus: ordersWithStatus,
     nfs: nfs,
