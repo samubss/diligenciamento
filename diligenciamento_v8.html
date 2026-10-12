@@ -2175,9 +2175,13 @@ Retorne APENAS o JSON, sem explicações.` }
       novosErros.push("Informe o número da NF.");
     }
 
-    // 2. Verificação de duplicata (mesmo número, mesmo pedido, excluindo a que está sendo editada)
-    const duplicada = nfs.find(n => n.pedidoId === order.id && n.numero.trim().toLowerCase() === form.numero.trim().toLowerCase() && n.id !== editingNF?.id);
-    if (duplicada) novosErros.push(`NF nº "${form.numero}" já está registrada neste pedido.`);
+    // 2. Verificação de duplicata global (mesmo número em qualquer pedido, excluindo a que está sendo editada)
+    const duplicadaGlobal = nfs.find(n => n.numero.trim().toLowerCase() === form.numero.trim().toLowerCase() && n.id !== editingNF?.id);
+    if (duplicadaGlobal) {
+      const mesmoPedido = duplicadaGlobal.pedidoId === order.id;
+      const onde = mesmoPedido ? "neste pedido" : `no pedido ${duplicadaGlobal.pedidoId}`;
+      novosErros.push(`NF nº "${form.numero}" já está registrada no sistema (${onde}). Verifique antes de continuar.`);
+    }
 
     // 3. Verifica se algum item ultrapassa o saldo disponível
     const itensSelecionados = Object.entries(itensSel).filter(([, v]) => v.checked);
@@ -2342,15 +2346,27 @@ Retorne APENAS o JSON, sem explicações.` }
     }
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: G.label
-  }, "Nº da NF"), /*#__PURE__*/React.createElement("input", {
-    style: G.input,
-    value: form.numero,
-    onChange: e => {
-      setF("numero", e.target.value);
-      setErros([]);
-    },
-    placeholder: "Ex: 00123"
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+  }, "Nº da NF"),
+    (()=>{
+      const nfDupl = form.numero.trim() ? nfs.find(n => n.numero.trim().toLowerCase() === form.numero.trim().toLowerCase() && n.id !== editingNF?.id) : null;
+      const alertaStyle = {fontSize:"11px",color:"#b45309",background:"#fef3c7",border:"1px solid #fcd34d",borderRadius:"5px",padding:"4px 8px",marginTop:"4px",display:"flex",alignItems:"flex-start",gap:"4px"};
+      return /*#__PURE__*/React.createElement(React.Fragment, null,
+        /*#__PURE__*/React.createElement("input", {
+          style: nfDupl ? {...G.input, borderColor:"#f59e0b", background:"#fffbeb"} : G.input,
+          value: form.numero,
+          onChange: e => { setF("numero", e.target.value); setErros([]); },
+          placeholder: "Ex: 00123"
+        }),
+        nfDupl && /*#__PURE__*/React.createElement("div", {style: alertaStyle},
+          /*#__PURE__*/React.createElement("span", null, "⚠"),
+          /*#__PURE__*/React.createElement("span", null,
+            "NF já registrada ",
+            nfDupl.pedidoId === order.id ? "neste pedido" : `no pedido ${nfDupl.pedidoId}`
+          )
+        )
+      );
+    })()
+  ), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     style: G.label
   }, "Data emissão"), /*#__PURE__*/React.createElement("input", {
     style: G.input,
@@ -5256,11 +5272,16 @@ const RelatorioPage = ({
 // Parser de texto JMC — processa texto colado do PDF (Ctrl+A, Ctrl+C no Adobe/Chrome)
 const parseJmcTexto = (texto) => {
   // Formato real JMC (pdftotext/PDF.js):
-  // O texto vem com colunas separadas — os números de fatura (001XXXXX) aparecem
+  // O texto vem com colunas separadas — os números de fatura (00XXXXXXX) aparecem
   // isolados em linhas ou seguidos de data. Os valores aparecem sozinhos em outras
   // linhas (ex: 581.85, 49.9, 264).
   // Estratégia: coleta todas as faturas em ordem e todos os valores em ordem,
   // depois emparelha por posição no texto.
+  //
+  // Formatos conhecidos de fatura JMC:
+  //   001XXXXX — ex: 00129101 (prefixo "001")
+  //   000XXXXX — ex: 00098401 (prefixo "000")
+  // Os últimos 2 dígitos são sempre o código do cliente (ex: "01"), remove-os.
 
   const faturaToNF = (fatura) => {
     const semZeros = fatura.replace(/^0+/, "");
@@ -5269,47 +5290,48 @@ const parseJmcTexto = (texto) => {
   };
 
   // 1) Coleta todas as ocorrências de fatura com posição no texto
-  const reFatura = /\b(001\d{5})\b/g;
+  // Aceita 8 dígitos começando com "00" (000XXXXX ou 001XXXXX etc.)
+  const reFatura = /\b(00\d{6})\b/g;
   const faturas = [];
   let mf;
   while ((mf = reFatura.exec(texto)) !== null) {
+    // Exclui números que parecem ser doc/PV (ex: 53067098 — 8 dígitos mas começa com 5)
+    // e anos/datas embutidos
     faturas.push({ fatura: mf[1], pos: mf.index });
   }
 
   if (faturas.length === 0) return [];
 
-  // 2) Coleta todos os valores monetários (número decimal isolado, ex: 581.85 ou 49.9)
-  //    que NÃO sejam anos (2026 etc), datas (2026-09-24), nem números de doc grandes
-  //    Valores válidos: entre 1 e 999999, com até 2 casas decimais
+  // 2) Coleta todos os valores monetários (número decimal, ex: 581.85 ou 39.9)
+  //    Valores válidos: entre 1 e 999999, com casas decimais
   const reValor = /(?<![0-9\-])(\d{1,6}\.\d{1,2})(?![0-9])/g;
   const valores = [];
   let mv;
   while ((mv = reValor.exec(texto)) !== null) {
     const v = parseFloat(mv[1]);
-    // Filtra anos e valores absurdos
     if (v >= 1 && v < 100000 && !/^\d{4}$/.test(mv[1])) {
       valores.push({ valor: v, pos: mv.index });
     }
   }
 
-  // Também pega valores sem decimais grandes o suficiente (ex: inteiros como 264)
-  // que aparecem logo após uma data de pagamento (YYYY-MM-DD)
-  const reDataValor = /(\d{4}-\d{2}-\d{2})\s+(\d{2,6})(?:\.\d{1,2})?\b/g;
+  // Também pega valores sem decimais que aparecem logo após uma data de pagamento (YYYY-MM-DD)
+  // ex: "2026-05-21 398" ou "2026-05-21 7781"
+  const reDataValor = /(\d{4}-\d{2}-\d{2})\s+(\d{2,6})(?!\.\d)(?![0-9])/g;
   let mdv;
   while ((mdv = reDataValor.exec(texto)) !== null) {
     const v = parseFloat(mdv[2]);
     if (v >= 1 && v < 100000) {
-      // só adiciona se não tiver valor próximo já coletado
-      const jatem = valores.some(x => Math.abs(x.pos - mdv.index) < 20);
-      if (!jatem) valores.push({ valor: v, pos: mdv.index + mdv[1].length });
+      const posValor = mdv.index + mdv[1].length + 1;
+      const jatem = valores.some(x => Math.abs(x.pos - posValor) < 5);
+      if (!jatem) valores.push({ valor: v, pos: posValor });
     }
   }
 
   // Ordena valores por posição
   valores.sort((a, b) => a.pos - b.pos);
 
-  // 3) Para cada fatura, pega o próximo valor que aparece APÓS ela no texto
-  //    e antes da próxima fatura
+  // 3) Para cada fatura, pega o valor que aparece APÓS ela no texto e antes da próxima fatura
+  //    O "Valor do Pagamento" / "Valor líquido" é o primeiro valor após a fatura + data
   const agrupado = {};
   faturas.forEach((fat, i) => {
     const proxFatPos = faturas[i + 1] ? faturas[i + 1].pos : texto.length;
@@ -5333,10 +5355,15 @@ const parseJmcTexto = (texto) => {
   }));
 };
 
-// Extrai número da OP do texto do PDF (ex: "296771")
+// Extrai número da OP do texto do PDF (ex: "296771" ou "286977")
 const extrairNumeroOP = (texto) => {
-  const m = texto.match(/(?:ordem de pagamento|OP|O\.P\.)[^\d]*(\d{5,10})/i);
-  return m ? m[1] : "";
+  // "Número de Pagamento: 286977" (formato JMC real)
+  const m1 = texto.match(/n[uú]mero\s+de\s+pagamento[:\s]*(\d{5,10})/i);
+  if (m1) return m1[1];
+  // "Número de Pagamento 286977" sem dois pontos
+  const m2 = texto.match(/(?:ordem de pagamento|OP|O\.P\.)[^\d]*(\d{5,10})/i);
+  if (m2) return m2[1];
+  return "";
 };
 
 // Extrai a data de pagamento do PDF (ex: "17/09/2026" ou "2026-09-17")
@@ -5404,7 +5431,7 @@ const ImportarPdfJmcModal = ({ nfs, onClose, onConfirmar }) => {
     if (dataDoPdf) setDataOp(dataDoPdf);
     const linhas = parseJmcTexto(texto);
     if (linhas.length === 0) {
-      setErro("Nenhuma linha de pagamento encontrada. Verifique se o texto copiado contém os números de fatura (ex: 00129101).");
+      setErro("Nenhuma linha de pagamento encontrada. Verifique se o texto copiado contém os números de fatura (ex: 00129101).\n\nSe importou um PDF, tente copiar o texto manualmente (Ctrl+A, Ctrl+C) e colar na área de texto abaixo.");
       setStatus("erro");
       return;
     }
