@@ -7315,19 +7315,41 @@ function App() {
       (()=>{
         const hoje = new Date();
         const recentes = ordersWithStatus.filter(o=>{ const d=new Date(o.data+"T12:00:00"); return !isNaN(d)&&(hoje-d)/(86400000)<=7; }).length;
+        // itens disponíveis p/ entrega: qtd_disponivel >= qtd e ainda não entregue
+        const itensDisp = ordersWithStatus.reduce((acc,o)=>{
+          const orderNFsConf = nfs.filter(n=>n.pedidoId===o.id&&n.entrega_confirmada);
+          (o.items||[]).forEach((it,idx)=>{
+            const entregue = orderNFsConf.reduce((s,nf)=>{
+              const e=(nf.itensNF||[]).find(x=>(typeof x==="object"?x.idx:x)===idx);
+              return s+(e?typeof e==="object"?e.qtd||0:0:0);
+            },0);
+            if((it.qtd_disponivel||0)>=(it.qtd||0)&&entregue<(it.qtd||0)) acc++;
+          });
+          return acc;
+        },0);
+        const pedidosComItemDisp = ordersWithStatus.filter(o=>{
+          const orderNFsConf = nfs.filter(n=>n.pedidoId===o.id&&n.entrega_confirmada);
+          return (o.items||[]).some((it,idx)=>{
+            const entregue = orderNFsConf.reduce((s,nf)=>{
+              const e=(nf.itensNF||[]).find(x=>(typeof x==="object"?x.idx:x)===idx);
+              return s+(e?typeof e==="object"?e.qtd||0:0:0);
+            },0);
+            return (it.qtd_disponivel||0)>=(it.qtd||0)&&entregue<(it.qtd||0);
+          });
+        }).length;
         const cards = [
           { label:"TODOS OS PEDIDOS", value:ordersWithStatus.length,           color:"#3A3F9E", icon:"📋", sub:"Total cadastrado",            nav:()=>goPage("pedidos") },
           { label:"RECENTES",          value:recentes,                           color:"#0EA5E9", icon:"🕐", sub:"Criados nos últimos 7 dias",   nav:()=>goPage("pedidos") },
           { label:"EM ANDAMENTO",      value:ordersWithStatus.filter(o=>o.status==="Em andamento").length, color:"#F59E0B", icon:"⚙", sub:"Aguardando fornecimento", nav:()=>goPage("pedidos") },
           { label:"ATRASADOS",         value:ordersWithStatus.filter(o=>o.status==="Atrasado").length,     color:"#EF4444", icon:"⚠", sub:"Prazo vencido",           nav:()=>goPage("pedidos") },
-          { label:"DISP. P/ ENTREGA",  value:ordersWithStatus.filter(o=>o.status==="Disponível p/ entrega").length, color:"#10B981", icon:"✅", sub:"Prontos para retirada",  nav:()=>goPage("pedidos") },
+          { label:"DISP. P/ ENTREGA",  value:itensDisp, sub2: pedidosComItemDisp+" pedido"+(pedidosComItemDisp!==1?"s":""), color:"#10B981", icon:"✅", sub:"Itens prontos",  nav:()=>goPage("pedidos") },
         ];
         return cards.map(c => /*#__PURE__*/React.createElement("div", {
           key: c.label,
           onClick: c.nav,
-          style:{background:"var(--color-surface)",border:"1px solid var(--color-border)",borderRadius:"12px",padding:"16px",cursor:"pointer",transition:"box-shadow .15s,transform .1s",boxShadow:"0 1px 3px rgba(0,0,0,.05)"},
-          onMouseEnter: e=>{e.currentTarget.style.boxShadow="0 4px 16px rgba(0,0,0,.1)";e.currentTarget.style.transform="translateY(-2px)";},
-          onMouseLeave: e=>{e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,.05)";e.currentTarget.style.transform="";}
+          style:{background:"var(--color-surface)",border:"1px solid var(--color-border)",borderRadius:"12px",padding:"16px",cursor:"pointer",transition:"box-shadow .15s,transform .15s,border-color .15s",boxShadow:"0 1px 3px rgba(0,0,0,.05)"},
+          onMouseEnter: e=>{e.currentTarget.style.boxShadow="0 6px 20px rgba(0,0,0,.12)";e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.borderColor=c.color;},
+          onMouseLeave: e=>{e.currentTarget.style.boxShadow="0 1px 3px rgba(0,0,0,.05)";e.currentTarget.style.transform="";e.currentTarget.style.borderColor="var(--color-border)";}
         },
           /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"10px"}},
             /*#__PURE__*/React.createElement("div", {style:{width:"36px",height:"36px",borderRadius:"50%",background:c.color+"22",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"16px"}}, c.icon),
@@ -7335,6 +7357,7 @@ function App() {
           ),
           /*#__PURE__*/React.createElement("div", {style:{fontSize:"32px",fontWeight:"800",color:c.color,lineHeight:"1",fontVariantNumeric:"tabular-nums"}}, c.value),
           /*#__PURE__*/React.createElement("div", {style:{fontSize:"11px",color:"var(--color-text-secondary)",marginTop:"6px"}}, c.sub),
+          c.sub2 && /*#__PURE__*/React.createElement("div", {style:{fontSize:"11px",color:"var(--color-text-secondary)",marginTop:"2px"}}, "em ", c.sub2),
           /*#__PURE__*/React.createElement("div", {style:{fontSize:"11px",color:c.color,marginTop:"4px",fontWeight:"600"}}, "→ VER TODOS →")
         ));
       })()
@@ -7357,44 +7380,40 @@ function App() {
           const fmtBRL = v => finValoresOcultos
             ? /*#__PURE__*/React.createElement("span", {style:{filter:"blur(7px)",userSelect:"none"}}, "R$ 99.999,99")
             : "R$ " + v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
-          // NFs com entrega confirmada e não pagas — usa mesma lógica de dataPrevistaPgto da página Pagamentos
           const calcVencimento = nf => {
-            const dataEntrega = nf.entrega_data;
-            if (!dataEntrega) return null;
+            if (!nf.entrega_data) return null;
             const order = ordersWithStatus.find(o => o.id === nf.pedidoId);
             const prazo = parseInt((order?.pagamento||"").replace(/\D/g,"")) || 15;
-            const d = new Date(dataEntrega+"T12:00:00");
+            const d = new Date(nf.entrega_data+"T12:00:00");
             d.setDate(d.getDate()+prazo);
             return d;
           };
           const nfsPendentes = nfs.filter(n => n.entrega_confirmada && !n.pagamento_confirmado);
           const calcPeriodo = dias => {
             const fim = new Date(hoje); fim.setDate(fim.getDate()+dias);
-            const nfsFiltradas = nfsPendentes.filter(n => {
-              const venc = calcVencimento(n);
-              return venc && venc >= hoje && venc <= fim;
-            });
-            const total = nfsFiltradas.reduce((s,n)=>s+(n.valorNF||0),0);
-            return { total, count: nfsFiltradas.length };
+            const nfsFiltradas = nfsPendentes.filter(n => { const v=calcVencimento(n); return v&&v>=hoje&&v<=fim; });
+            return { total: nfsFiltradas.reduce((s,n)=>s+(n.valorNF||0),0), count: nfsFiltradas.length };
           };
           const periodos = [
-            { label:"A receber semanal",   badge:"7 dias",   dias:7,  color:"#0EA5E9", badgeBg:"rgba(14,165,233,.15)"  },
-            { label:"A receber quinzenal",  badge:"15 dias",  dias:15, color:"#8B5CF6", badgeBg:"rgba(139,92,246,.15)" },
-            { label:"A receber mensal",     badge:"30 dias",  dias:30, color:"#10B981", badgeBg:"rgba(16,185,129,.15)" },
+            { label:"A receber semanal",  badge:"7 dias",  dias:7,  color:"#0EA5E9", badgeBg:"rgba(14,165,233,.15)" },
+            { label:"A receber quinzenal", badge:"15 dias", dias:15, color:"#8B5CF6", badgeBg:"rgba(139,92,246,.15)" },
+            { label:"A receber mensal",    badge:"30 dias", dias:30, color:"#10B981", badgeBg:"rgba(16,185,129,.15)" },
           ];
           return periodos.map(p => {
             const info = calcPeriodo(p.dias);
             return /*#__PURE__*/React.createElement("div", {
               key: p.label,
-              style:{borderRadius:"10px",padding:"16px 18px",border:"1px solid var(--color-border)",background:"var(--color-surface)"}
+              style:{borderRadius:"10px",padding:"16px 18px",border:"1px solid var(--color-border)",background:"var(--color-surface)",cursor:"pointer",transition:"box-shadow .15s,transform .15s,border-color .15s"},
+              onMouseEnter: e=>{e.currentTarget.style.boxShadow="0 6px 20px rgba(0,0,0,.12)";e.currentTarget.style.transform="translateY(-3px)";e.currentTarget.style.borderColor=p.color;},
+              onMouseLeave: e=>{e.currentTarget.style.boxShadow="";e.currentTarget.style.transform="";e.currentTarget.style.borderColor="var(--color-border)";}
             },
               /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"8px"}},
                 /*#__PURE__*/React.createElement("span", {style:{fontSize:"12px",fontWeight:"600",color:"var(--color-text-primary)"}}, p.label),
                 /*#__PURE__*/React.createElement("span", {style:{fontSize:"10px",fontWeight:"700",color:p.color,background:p.badgeBg,padding:"2px 8px",borderRadius:"999px"}}, p.badge)
               ),
-              /*#__PURE__*/React.createElement("div", {
-                style:{fontSize:"24px",fontWeight:"800",color:p.color,fontVariantNumeric:"tabular-nums",transition:"filter .2s",marginBottom:"6px"}
-              }, fmtBRL(info.total)),
+              /*#__PURE__*/React.createElement("div", {style:{fontSize:"24px",fontWeight:"800",color:p.color,fontVariantNumeric:"tabular-nums",transition:"filter .2s",marginBottom:"6px"}},
+                fmtBRL(info.total)
+              ),
               /*#__PURE__*/React.createElement("div", {style:{fontSize:"11px",color:"var(--color-text-secondary)"}},
                 info.count, " NF", info.count!==1?"s":"", " a vencer"
               )
@@ -7404,44 +7423,93 @@ function App() {
       )
     ),
     /*#__PURE__*/React.createElement("div", {
-      style:{background:"var(--color-surface)",border:"1px solid var(--color-border)",borderRadius:"12px",overflow:"hidden"}
+      style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"16px"}
     },
-      /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",borderBottom:"1px solid var(--color-border)"}},
-        /*#__PURE__*/React.createElement("h3", {style:{margin:0,fontSize:"13px",fontWeight:"700",color:"var(--color-text-primary)",textTransform:"uppercase",letterSpacing:"0.5px"}}, "Últimos Pedidos"),
-        /*#__PURE__*/React.createElement("button", {onClick:()=>goPage("pedidos"),style:{background:"none",border:"none",color:"#185FA5",fontSize:"12px",fontWeight:"600",cursor:"pointer"}}, "Ver todos →")
-      ),
-      /*#__PURE__*/React.createElement("table", {style:{width:"100%",borderCollapse:"collapse",fontSize:"13px"}},
-        /*#__PURE__*/React.createElement("thead", null,
-          /*#__PURE__*/React.createElement("tr", {style:{background:"var(--color-background-secondary)"}},
-            ["Cliente","Fornecedor","Nº Pedido","Data","Status"].map(h =>
-              /*#__PURE__*/React.createElement("th", {key:h,style:{textAlign:"left",padding:"8px 14px",fontWeight:"600",color:"var(--color-text-secondary)",fontSize:"11px",textTransform:"uppercase",letterSpacing:"0.4px"}}, h)
-            )
-          )
-        ),
-        /*#__PURE__*/React.createElement("tbody", null,
-          [...ordersWithStatus].sort((a,b)=>(b.data||"").localeCompare(a.data||"")).slice(0,8).map(o => {
-            const st = STATUS_MAP[o.status] || { bg:"#eee", color:"#333" };
-            return /*#__PURE__*/React.createElement("tr", {
-              key: o.id,
-              style:{borderBottom:"1px solid var(--color-border)",cursor:"pointer"},
-              onClick: ()=>{setSelectedOrderId(o.id);goPage("pedidos");},
-              onMouseEnter: e=>e.currentTarget.style.background="var(--color-background-secondary)",
-              onMouseLeave: e=>e.currentTarget.style.background=""
-            },
-              /*#__PURE__*/React.createElement("td", {style:{padding:"10px 14px",fontWeight:"500",color:"var(--color-text-primary)"}}, o.cliente||"—"),
-              /*#__PURE__*/React.createElement("td", {style:{padding:"10px 14px",color:"var(--color-text-secondary)"}}, o.fornecedor||"—"),
-              /*#__PURE__*/React.createElement("td", {style:{padding:"10px 14px",color:"var(--color-text-secondary)",fontFamily:"monospace",fontSize:"12px"}}, o.numero||"—"),
-              /*#__PURE__*/React.createElement("td", {style:{padding:"10px 14px",color:"var(--color-text-secondary)"}}, o.data ? new Date(o.data+"T12:00:00").toLocaleDateString("pt-BR") : "—"),
-              /*#__PURE__*/React.createElement("td", {style:{padding:"10px 14px"}},
-                /*#__PURE__*/React.createElement("span", {style:{background:st.bg,color:st.color,padding:"3px 10px",borderRadius:"999px",fontSize:"11px",fontWeight:"600",whiteSpace:"nowrap"}}, o.status)
+      (()=>{
+        // ── Gráfico 1: Pedidos por status (barras horizontais SVG) ──
+        const statusGrafico = [
+          { label:"Novo",                  color:"#0EA5E9" },
+          { label:"Em andamento",          color:"#F59E0B" },
+          { label:"Atrasado",              color:"#EF4444" },
+          { label:"Concluído",             color:"#064E3B" },
+          { label:"Devolvido",             color:"#6B7280" },
+          { label:"Cancelado",             color:"#9CA3AF" },
+          { label:"Pago",                  color:"#7C3AED" },
+        ];
+        const contagensStatus = statusGrafico.map(s=>({
+          ...s, count: ordersWithStatus.filter(o=>o.status===s.label).length
+        })).filter(s=>s.count>0);
+        const maxCount = Math.max(...contagensStatus.map(s=>s.count),1);
+        return /*#__PURE__*/React.createElement("div", {
+          style:{background:"var(--color-surface)",border:"1px solid var(--color-border)",borderRadius:"12px",padding:"18px 20px"}
+        },
+          /*#__PURE__*/React.createElement("h3", {style:{margin:"0 0 16px",fontSize:"13px",fontWeight:"700",color:"var(--color-text-primary)",textTransform:"uppercase",letterSpacing:"0.5px"}}, "Pedidos por Status"),
+          contagensStatus.length===0
+            ? /*#__PURE__*/React.createElement("p", {style:{color:"var(--color-text-secondary)",fontSize:"13px"}}, "Sem dados")
+            : contagensStatus.map(s =>
+                /*#__PURE__*/React.createElement("div", {key:s.label, style:{marginBottom:"10px"}},
+                  /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"4px"}},
+                    /*#__PURE__*/React.createElement("span", {style:{fontSize:"12px",color:"var(--color-text-primary)",fontWeight:"500"}}, s.label),
+                    /*#__PURE__*/React.createElement("span", {style:{fontSize:"12px",fontWeight:"700",color:s.color}}, s.count)
+                  ),
+                  /*#__PURE__*/React.createElement("div", {style:{height:"8px",borderRadius:"999px",background:"var(--color-border)"}},
+                    /*#__PURE__*/React.createElement("div", {style:{height:"8px",borderRadius:"999px",background:s.color,width:(s.count/maxCount*100)+"%",transition:"width .4s ease"}})
+                  )
+                )
               )
-            );
-          }),
-          ordersWithStatus.length===0 && /*#__PURE__*/React.createElement("tr", null,
-            /*#__PURE__*/React.createElement("td", {colSpan:5,style:{padding:"32px",textAlign:"center",color:"var(--color-text-secondary)"}}, "Nenhum pedido cadastrado")
+        );
+      })(),
+      (()=>{
+        // ── Gráfico 2: Faturamento mensal (últimos 6 meses) ──
+        const hoje = new Date();
+        const meses = Array.from({length:6},(_,i)=>{
+          const d = new Date(hoje.getFullYear(), hoje.getMonth()-5+i, 1);
+          return { ano: d.getFullYear(), mes: d.getMonth(), label: d.toLocaleDateString("pt-BR",{month:"short",year:"2-digit"}) };
+        });
+        const faturamentoPorMes = meses.map(m=>{
+          const total = nfs.filter(n=>{
+            if(!n.pagamento_confirmado||!n.pagamento_data) return false;
+            const d=new Date(n.pagamento_data+"T12:00:00");
+            return d.getFullYear()===m.ano&&d.getMonth()===m.mes;
+          }).reduce((s,n)=>s+(n.pagamento_valor||n.valorNF||0),0);
+          return {...m, total};
+        });
+        const maxVal = Math.max(...faturamentoPorMes.map(m=>m.total),1);
+        const fmtK = v => v>=1000 ? "R$"+(v/1000).toFixed(0)+"k" : "R$"+v.toFixed(0);
+        const BAR_H = 120;
+        return /*#__PURE__*/React.createElement("div", {
+          style:{background:"var(--color-surface)",border:"1px solid var(--color-border)",borderRadius:"12px",padding:"18px 20px"}
+        },
+          /*#__PURE__*/React.createElement("h3", {style:{margin:"0 0 16px",fontSize:"13px",fontWeight:"700",color:"var(--color-text-primary)",textTransform:"uppercase",letterSpacing:"0.5px"}}, "Faturamento Mensal — Últimos 6 meses"),
+          /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"flex-end",gap:"8px",height:(BAR_H+36)+"px"}},
+            faturamentoPorMes.map(m =>
+              /*#__PURE__*/React.createElement("div", {
+                key:m.label,
+                style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:"4px"}
+              },
+                /*#__PURE__*/React.createElement("div", {style:{fontSize:"10px",color:"#185FA5",fontWeight:"700",height:"16px",display:"flex",alignItems:"flex-end"}},
+                  m.total>0 ? fmtK(m.total) : ""
+                ),
+                /*#__PURE__*/React.createElement("div", {
+                  style:{
+                    width:"100%",
+                    borderRadius:"4px 4px 0 0",
+                    background: m.mes===hoje.getMonth()&&m.ano===hoje.getFullYear() ? "#185FA5" : "rgba(24,95,165,.35)",
+                    height: m.total>0 ? Math.max((m.total/maxVal)*BAR_H,4)+"px" : "4px",
+                    transition:"height .4s ease",
+                    cursor:"default",
+                    title: "R$ "+m.total.toLocaleString("pt-BR",{minimumFractionDigits:2})
+                  }
+                }),
+                /*#__PURE__*/React.createElement("div", {style:{fontSize:"10px",color:"var(--color-text-secondary)",textTransform:"capitalize",marginTop:"2px"}}, m.label)
+              )
+            )
+          ),
+          /*#__PURE__*/React.createElement("div", {style:{fontSize:"11px",color:"var(--color-text-secondary)",marginTop:"8px",borderTop:"1px solid var(--color-border)",paddingTop:"8px"}},
+            "Mês atual destacado em azul · Baseado em NFs com pagamento confirmado"
           )
-        )
-      )
+        );
+      })()
     )
   ), page === "pedidos" && /*#__PURE__*/React.createElement("div", {
     style: {
