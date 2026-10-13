@@ -4333,7 +4333,8 @@ const RelatorioPage = ({
   geradoExt,
   setGeradoExt,
   mostrarValoresExt,
-  setMostrarValoresExt
+  setMostrarValoresExt,
+  onOpenOrder
 }) => {
   const [filtros, setFiltrosLocal] = useState(filtrosExt || {
     cliente: "",
@@ -4949,6 +4950,8 @@ const RelatorioPage = ({
         color: "var(--color-text-secondary)"
       }
     }, o.numeroPedido && /*#__PURE__*/React.createElement("span", {
+      onClick: onOpenOrder ? () => onOpenOrder(o) : undefined,
+      title: onOpenOrder ? "Abrir pedido" : undefined,
       style: {
         display: "inline-block",
         border: "1.5px solid var(--color-text-primary)",
@@ -4958,7 +4961,10 @@ const RelatorioPage = ({
         fontSize: 13,
         color: "var(--color-text-primary)",
         background: "var(--color-background-primary)",
-        marginRight: 4
+        marginRight: 4,
+        cursor: onOpenOrder ? "pointer" : "default",
+        textDecoration: onOpenOrder ? "underline" : "none",
+        textDecorationStyle: "dotted"
       }
     }, "Nº ", o.numeroPedido), o.numeroPedido && " · ", o.id, " · Fornecedor: ", o.fornecedor, " · Data: ", fmtDate(o.data)), o.pagamento && /*#__PURE__*/React.createElement("p", {
       style: {
@@ -8065,7 +8071,8 @@ function App() {
     geradoExt: relGerado,
     setGeradoExt: setRelGerado,
     mostrarValoresExt: relMostrarValores,
-    setMostrarValoresExt: setRelMostrarValores
+    setMostrarValoresExt: setRelMostrarValores,
+    onOpenOrder: o => { setSelectedOrderId(o.id); setPage("detalhe"); }
   }), page === "configuracoes" && /*#__PURE__*/React.createElement(ConfiguracoesPage, null))));
 }
 
