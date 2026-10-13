@@ -5181,14 +5181,22 @@ const RelatorioPage = ({
         style: {
           fontSize: 9,
           color: "var(--color-text-tertiary)",
-          marginBottom: 2
+          marginBottom: 4
         }
-      }, "Previsão"), /*#__PURE__*/React.createElement("p", {
-        style: {
-          color: venc ? "#A32D2D" : undefined,
-          fontWeight: venc ? 600 : undefined
-        }
-      }, dataEfetiva(it) ? fmtDate(dataEfetiva(it)) : "–", venc && " ⚠")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
+      }, "Previsão"), (()=>{
+        const dEf = dataEfetiva(it);
+        if (!dEf) return /*#__PURE__*/React.createElement("span", {style:{color:"var(--color-text-tertiary)"}}, "–");
+        const hoje2 = new Date(); hoje2.setHours(0,0,0,0);
+        const dPrev = new Date(dEf+"T12:00:00");
+        const diffDias = Math.ceil((dPrev - hoje2) / 86400000);
+        let bgP, colorP, icon;
+        if (diffDias < 0)       { bgP="#FEE2E2"; colorP="#B91C1C"; icon="⚠ "; }
+        else if (diffDias <= 7) { bgP="#FEF9C3"; colorP="#92400E"; icon="⏳ "; }
+        else                    { bgP="#DCFCE7"; colorP="#166534"; icon="✓ "; }
+        return /*#__PURE__*/React.createElement("span", {
+          style:{display:"inline-block",background:bgP,color:colorP,fontWeight:700,fontSize:11,padding:"2px 7px",borderRadius:6,whiteSpace:"nowrap"}
+        }, icon, fmtDate(dEf));
+      })()), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
         style: {
           fontSize: 9,
           color: "var(--color-text-tertiary)",
