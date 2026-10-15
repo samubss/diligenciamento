@@ -4403,6 +4403,8 @@ const RelatorioPage = ({
     if (filtros.dataInicio && o.data < filtros.dataInicio) return false;
     if (filtros.dataFim && o.data > filtros.dataFim) return false;
     if (filtros.apenasItensP) {
+      // Pedidos Devolvidos ou Cancelados não têm itens "pendentes" de entrega
+      if (o.status === "Devolvido" || o.status === "Cancelado") return false;
       const orderNFsLocal = nfs.filter(n => n.pedidoId === o.id);
       const temPendente = (o.items || []).some((it, idx) => {
         const qtdEntregueViaNF = orderNFsLocal.filter(nf => nf.entrega_confirmada).reduce((sum, nf) => {
