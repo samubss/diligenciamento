@@ -4094,7 +4094,7 @@ const SearchPanel = ({
         type: "pedido",
         id: o.id,
         title: o.cliente,
-        sub: `${o.id}${o.numeroPedido ? ` · Nº ${o.numeroPedido}` : ""} · ${o.fornecedor}`,
+        sub: `${o.id}${o.numeroPedido ? ` · Nº ${o.numeroPedido}` : ""} · ${o.fornecedor}${o.data ? ` · ${fmtDate(o.data)}` : ""}`,
         meta: fmt(o.total),
         badge: o.status,
         badgeMap: STATUS_MAP,
