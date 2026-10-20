@@ -6242,6 +6242,7 @@ function App() {
       if (orderNFsSync.length === 0) return o;
       const updatedItems = (o.items || []).map((it, idx) => {
         const qtdViaNF = orderNFsSync.reduce((s, nf) => {
+          if (!nf.entrega_confirmada) return s; // só conta entregas confirmadas
           const entry = (nf.itensNF || []).find(e => (typeof e === "object" ? e.idx : e) === idx);
           return s + (entry ? typeof entry === "object" ? entry.qtd || 0 : 0 : 0);
         }, 0);
@@ -6325,6 +6326,7 @@ function App() {
       const updatedItems = (o.items || []).map((it, idx) => {
         // soma todas as qtds entregues em todas as NFs para este item
         const totalEntregue = pedidoNFs.reduce((sum, nf) => {
+          if (!nf.entrega_confirmada) return sum; // só conta entregas confirmadas
           const entry = (nf.itensNF || []).find(e => typeof e === "object" ? e.idx === idx : e === idx);
           return sum + (entry ? typeof entry === "object" ? entry.qtd || 0 : 0 : 0);
         }, 0);
