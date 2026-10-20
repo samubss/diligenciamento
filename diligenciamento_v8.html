@@ -338,7 +338,10 @@ const isVencido = de => {
   if (!de) return false;
   return new Date(de + "T23:59:59") < new Date();
 };
+// dataEfetiva: usada para EXIBIÇÃO (previsão atual) — usa revisada se existir
 const dataEfetiva = it => it.data_entrega_revisada || it.data_entrega_original || it.data_entrega || "";
+// dataOriginal: usada para ATRASO — nunca muda, independente de revisões
+const dataOriginal = it => it.data_entrega_original || it.data_entrega || "";
 const diasAtraso = de => {
   if (!de) return 0;
   const diff = new Date() - new Date(de + "T23:59:59");
@@ -366,7 +369,7 @@ const calcStatus = (order, nfsAll) => {
   if (todosItensEntregues) return "Concluído";
 
   // 2ª: atrasado — item com prazo vencido e pedido não concluído
-  const temAtrasado = items.some(it => isVencido(dataEfetiva(it)));
+  const temAtrasado = items.some(it => isVencido(dataOriginal(it)));
   if (temAtrasado) return "Atrasado";
 
   // 3ª: disponível p/ entrega — todos os itens com qtd disponível >= qtd pedida
@@ -2949,7 +2952,7 @@ const OrderDetail = ({
 }) => {
   const cots = cotacoes.filter(c => c.pedidoId === order.id);
   const orderNFs = nfs.filter(n => n.pedidoId === order.id);
-  const vencidos = (order.items || []).filter(it => isVencido(dataEfetiva(it)));
+  const vencidos = (order.items || []).filter(it => isVencido(dataOriginal(it)));
   const pedidas = cots.filter(c => c.status === "Pedido" || c.status === "Pedido parcial");
   const totalCompra = pedidas.reduce((s, c) => {
     const it = order.items?.[c.itemIdx];
@@ -3163,7 +3166,7 @@ const OrderDetail = ({
       marginBottom: 10
     }
   }, "Itens do pedido"), /*#__PURE__*/React.createElement("div", null, (order.items || []).map((it, i) => {
-    const venc = isVencido(dataEfetiva(it));
+    const venc = isVencido(dataOriginal(it));
     const pendente = it.qtd_pendente_entrega ?? it.qtd - (it.qtd_entregue || 0);
     const parcial = (it.qtd_entregue || 0) > 0 && pendente > 0;
     const bg = venc ? "#FFF5F5" : parcial ? "#FFFBF0" : "transparent";
@@ -3212,7 +3215,7 @@ const OrderDetail = ({
         fontWeight: 600,
         whiteSpace: "nowrap"
       }
-    }, "⚠ ", diasAtraso(dataEfetiva(it)), "d de atraso"), parcial && !venc && /*#__PURE__*/React.createElement("span", {
+    }, "⚠ ", diasAtraso(dataOriginal(it)), "d de atraso"), parcial && !venc && /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 10,
         color: "#854F0B",
@@ -5063,7 +5066,7 @@ const RelatorioPage = ({
       it,
       idx: i
     }) => {
-      const venc = isVencido(dataEfetiva(it));
+      const venc = isVencido(dataOriginal(it));
       const bg = venc ? "#FFF5F5" : "transparent";
       const nfsDoItem = orderNFs.filter(nf => (nf.itensNF || []).some(e => (typeof e === "object" ? e.idx : e) === i));
       const nfsConfirmadas = nfsDoItem.filter(nf => nf.entrega_confirmada);
@@ -5116,7 +5119,7 @@ const RelatorioPage = ({
           fontWeight: 600,
           whiteSpace: "nowrap"
         }
-      }, "⚠ ", diasAtraso(dataEfetiva(it)), "d atraso"), qtdDisponivelEntrega > 0 && /*#__PURE__*/React.createElement("span", {
+      }, "⚠ ", diasAtraso(dataOriginal(it)), "d atraso"), qtdDisponivelEntrega > 0 && /*#__PURE__*/React.createElement("span", {
         style: {
           background: "#F0E8FB",
           color: "#5B21B6",
@@ -6849,7 +6852,7 @@ function App() {
   };
   const thCols = [["Nº Pedido", "17%"], ["Cliente", "22%"], ["Fornecedor", "19%"], ["Data", "11%"], ["Total", "12%"], ["Vencidos", "7%"], ["Pend.Entrega", "8%"], ["Status", "8%"]];
   const thColsPedidos = [["Nº Pedido", "17%"], ["Cliente", "22%"], ["Fornecedor", "19%"], ["Data ↕", "11%"], ["Total", "12%"], ["Vencidos", "7%"], ["Pend.Entrega", "8%"], ["Status", "8%"]];
-  const hasVencidos = o => (o.items || []).some(it => isVencido(dataEfetiva(it)));
+  const hasVencidos = o => (o.items || []).some(it => isVencido(dataOriginal(it)));
   const hasPendente = o => (o.items || []).some(it => (it.qtd_pendente_entrega ?? it.qtd - (it.qtd_entregue || 0)) > 0);
   const OrderRow = ({
     o
@@ -6908,7 +6911,7 @@ function App() {
       fontSize: 11,
       fontWeight: 500
     }
-  }, "⚠ ", (o.items || []).filter(it => isVencido(dataEfetiva(it))).length, " · ", Math.max(...(o.items || []).filter(it => isVencido(dataEfetiva(it))).map(it => diasAtraso(dataEfetiva(it)))), "d") : /*#__PURE__*/React.createElement("span", {
+  }, "⚠ ", (o.items || []).filter(it => isVencido(dataOriginal(it))).length, " · ", Math.max(...(o.items || []).filter(it => isVencido(dataOriginal(it))).map(it => diasAtraso(dataOriginal(it)))), "d") : /*#__PURE__*/React.createElement("span", {
     style: {
       color: "var(--color-text-tertiary)",
       fontSize: 12
