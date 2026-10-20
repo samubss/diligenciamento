@@ -2038,18 +2038,25 @@ Retorne APENAS o JSON, sem explicações.` }
       if (itensNF.length > 0 && order.items?.length > 0) {
         itensNF.forEach(itemNF => {
           const descNF = (itemNF.descricao || "").toLowerCase().trim();
+          const normalizar = s => s.toLowerCase().replace(/[\s\-\.\/]/g, "");
           // tenta encontrar o item do pedido por similaridade de descrição ou código
           let melhorIdx = -1;
           let melhorScore = 0;
           order.items.forEach((itemPedido, idx) => {
             const descPedido = (itemPedido.descricao || "").toLowerCase().trim();
-            const codPedido = (itemPedido.codigo || itemPedido.ref || "").toLowerCase().trim();
-            // verifica se a descrição da NF contém palavras-chave do pedido ou vice-versa
+            const codPedido = (itemPedido.cod || itemPedido.codigo || itemPedido.ref || "").toLowerCase().trim();
+            // verifica palavras da NF no pedido E palavras do pedido na NF (bidirecional)
             const palavrasPedido = descPedido.split(/\s+/).filter(p => p.length > 2);
-            const matches = palavrasPedido.filter(p => descNF.includes(p)).length;
-            const score = palavrasPedido.length > 0 ? matches / palavrasPedido.length : 0;
-            // também verifica por código
-            const temCodigo = codPedido && descNF.includes(codPedido);
+            const palavrasNF = descNF.split(/\s+/).filter(p => p.length > 2);
+            const matchesPedido = palavrasPedido.filter(p => descNF.includes(p)).length;
+            const matchesNF = palavrasNF.filter(p => descPedido.includes(p)).length;
+            const scorePedido = palavrasPedido.length > 0 ? matchesPedido / palavrasPedido.length : 0;
+            const scoreNF = palavrasNF.length > 0 ? matchesNF / palavrasNF.length : 0;
+            const score = Math.max(scorePedido, scoreNF);
+            // verifica por código (normalizado: sem espaços, hífens, pontos)
+            const codNFNorm = normalizar(descNF);
+            const codPedNorm = normalizar(codPedido);
+            const temCodigo = codPedido.length > 2 && (codNFNorm.includes(codPedNorm) || codPedNorm.includes(normalizar(descNF.split(/\s+/).find(w => w.length > 3) || "")));
             const scoreF = temCodigo ? 1 : score;
             if (scoreF > melhorScore) {
               melhorScore = scoreF;
@@ -2057,7 +2064,8 @@ Retorne APENAS o JSON, sem explicações.` }
             }
           });
 
-          if (melhorIdx >= 0 && melhorScore >= 0.4) {
+          // threshold baixo (0.2) — preferimos mostrar sugestão para o usuário confirmar
+          if (melhorIdx >= 0 && melhorScore >= 0.2) {
             const itemPedido = order.items[melhorIdx];
             const jaEntregue = orderNFs.filter(n => n.id !== editingNF?.id).reduce((sum, n) => {
               const entry = (n.itensNF || []).find(e => (typeof e === "object" ? e.idx : e) === melhorIdx);
@@ -2073,8 +2081,12 @@ Retorne APENAS o JSON, sem explicações.` }
             if (qtdNF > saldo) {
               divergencias.push(`⚠️ "${itemNF.descricao}": NF traz ${qtdNF} unid. mas saldo disponível é ${saldo}`);
             }
+            // avisa quando o match foi por baixa similaridade (sugestão, não certeza)
+            if (melhorScore < 0.4 && melhorScore >= 0.2) {
+              divergencias.push(`🔍 "${itemNF.descricao}" associado a "${order.items[melhorIdx].descricao}" (baixa similaridade — confirme)`);
+            }
           } else {
-            naoEncontrados.push(`⚠️ Item da NF não encontrado no pedido: "${itemNF.descricao}"`);
+            naoEncontrados.push(`⚠️ Item da NF não encontrado no pedido: "${itemNF.descricao}" — selecione manualmente`);
           }
         });
 
