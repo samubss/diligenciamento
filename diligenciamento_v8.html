@@ -7510,12 +7510,20 @@ function App() {
           setDashFiltroStatus(status);
           goPage("pedidos", {keepFilter: true});
         };
+        const fmtCardBRL = v => finValoresOcultos
+          ? /*#__PURE__*/React.createElement("span", {style:{filter:"blur(6px)",userSelect:"none",fontSize:"11px",color:"var(--color-text-secondary)"}}, "R$ 99.999,99")
+          : /*#__PURE__*/React.createElement("span", {style:{fontSize:"11px",color:"var(--color-text-secondary)",fontVariantNumeric:"tabular-nums"}},
+              "R$ " + v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2}));
+        const somaTotal = arr => arr.reduce((s,o)=>s+(o.total||0),0);
+        const ordensPorStatus = st => ordersWithStatus.filter(o=>o.status===st);
+        const recentesOrders = ordersWithStatus.filter(o=>{ const d=new Date(o.data||""); return (new Date()-d)/(1000*86400)<=7; });
+        const dispOrders = ordersWithStatus.filter(o=>{ const orderNFsConf=nfs.filter(n=>n.pedidoId===o.id&&n.entrega_confirmada); return (o.items||[]).some((it,idx)=>{ const entregue=orderNFsConf.reduce((s,nf)=>{ const e=(nf.itensNF||[]).find(x=>(typeof x==="object"?x.idx:x)===idx); return s+(e?typeof e==="object"?e.qtd||0:0:0); },0); return (it.qtd_disponivel||0)>=(it.qtd||0)&&entregue<(it.qtd||0); }); });
         const cards = [
-          { label:"TODOS OS PEDIDOS", value:ordersWithStatus.length,           color:"#3A3F9E", icon:"📋", sub:"Total cadastrado",            nav:()=>irParaPedidos(null) },
-          { label:"RECENTES",          value:recentes,                           color:"#0EA5E9", icon:"🕐", sub:"Criados nos últimos 7 dias",   nav:()=>irParaPedidos(null) },
-          { label:"EM ANDAMENTO",      value:ordersWithStatus.filter(o=>o.status==="Em andamento").length, color:"#F59E0B", icon:"⚙", sub:"Aguardando fornecimento", nav:()=>irParaPedidos("Em andamento") },
-          { label:"ATRASADOS",         value:ordersWithStatus.filter(o=>o.status==="Atrasado").length,     color:"#EF4444", icon:"⚠", sub:"Prazo vencido",           nav:()=>irParaPedidos("Atrasado") },
-          { label:"DISP. P/ ENTREGA",  value:itensDisp, sub2: pedidosComItemDisp+" pedido"+(pedidosComItemDisp!==1?"s":""), color:"#10B981", icon:"✅", sub:"Itens prontos",  nav:()=>irParaPedidos("Disponível p/ entrega") },
+          { label:"TODOS OS PEDIDOS", value:ordersWithStatus.length,           color:"#3A3F9E", icon:"📋", sub:"Total cadastrado",            nav:()=>irParaPedidos(null),              total: somaTotal(ordersWithStatus) },
+          { label:"RECENTES",          value:recentes,                           color:"#0EA5E9", icon:"🕐", sub:"Criados nos últimos 7 dias",   nav:()=>irParaPedidos(null),              total: somaTotal(recentesOrders) },
+          { label:"EM ANDAMENTO",      value:ordensPorStatus("Em andamento").length, color:"#F59E0B", icon:"⚙", sub:"Aguardando fornecimento", nav:()=>irParaPedidos("Em andamento"),   total: somaTotal(ordensPorStatus("Em andamento")) },
+          { label:"ATRASADOS",         value:ordensPorStatus("Atrasado").length,     color:"#EF4444", icon:"⚠", sub:"Prazo vencido",           nav:()=>irParaPedidos("Atrasado"),       total: somaTotal(ordensPorStatus("Atrasado")) },
+          { label:"DISP. P/ ENTREGA",  value:itensDisp, sub2: pedidosComItemDisp+" pedido"+(pedidosComItemDisp!==1?"s":""), color:"#10B981", icon:"✅", sub:"Itens prontos", nav:()=>irParaPedidos("Disponível p/ entrega"), total: somaTotal(dispOrders) },
         ];
         return cards.map(c => /*#__PURE__*/React.createElement("div", {
           key: c.label,
@@ -7531,6 +7539,7 @@ function App() {
           /*#__PURE__*/React.createElement("div", {style:{fontSize:"32px",fontWeight:"800",color:c.color,lineHeight:"1",fontVariantNumeric:"tabular-nums"}}, c.value),
           /*#__PURE__*/React.createElement("div", {style:{fontSize:"11px",color:"var(--color-text-secondary)",marginTop:"6px"}}, c.sub),
           c.sub2 && /*#__PURE__*/React.createElement("div", {style:{fontSize:"11px",color:"var(--color-text-secondary)",marginTop:"2px"}}, "em ", c.sub2),
+          /*#__PURE__*/React.createElement("div", {style:{marginTop:"6px"}}, fmtCardBRL(c.total)),
           /*#__PURE__*/React.createElement("div", {style:{fontSize:"11px",color:c.color,marginTop:"4px",fontWeight:"600"}}, "→ VER TODOS →")
         ));
       })()
