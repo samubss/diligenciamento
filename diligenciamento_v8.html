@@ -4483,7 +4483,7 @@ const RelatorioPage = ({
       })).filter(({
         it,
         idx
-      }) => (!filtros.apenasItensP || (it.qtd_pendente_entrega ?? it.qtd - (it.qtd_entregue || 0)) > 0) && (!filtros.apenasItensDisponiveis || (it.qtd_disponivel || 0) > orderNFs.filter(nf => nf.entrega_confirmada).reduce((s, nf) => {
+      }) => (!filtros.apenasItensP || (it.qtd_entregue || 0) < (it.qtd || 0)) && (!filtros.apenasItensDisponiveis || (it.qtd_disponivel || 0) > orderNFs.filter(nf => nf.entrega_confirmada).reduce((s, nf) => {
         const e = (nf.itensNF || []).find(e => (typeof e === "object" ? e.idx : e) === idx);
         return s + (e ? typeof e === "object" ? e.qtd || 0 : 0 : 0);
       }, 0))).forEach(({
@@ -5056,7 +5056,7 @@ const RelatorioPage = ({
     })).filter(({
       it,
       idx
-    }) => (!filtros.apenasItensP || (it.qtd_pendente_entrega ?? it.qtd - (it.qtd_entregue || 0)) > 0) && (!filtros.apenasItensDisponiveis || (it.qtd_disponivel || 0) > orderNFs.filter(nf => nf.entrega_confirmada).reduce((s, nf) => {
+    }) => (!filtros.apenasItensP || (it.qtd_entregue || 0) < (it.qtd || 0)) && (!filtros.apenasItensDisponiveis || (it.qtd_disponivel || 0) > orderNFs.filter(nf => nf.entrega_confirmada).reduce((s, nf) => {
       const e = (nf.itensNF || []).find(e => (typeof e === "object" ? e.idx : e) === idx);
       return s + (e ? typeof e === "object" ? e.qtd || 0 : 0 : 0);
     }, 0))).map(({
